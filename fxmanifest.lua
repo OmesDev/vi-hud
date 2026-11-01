@@ -10,21 +10,21 @@ ui_page 'html/index.html'
 
 shared_script 'config.lua'
 client_scripts {
-    'bridge.lua',
-    'settings.lua', -- per-player /hud settings; before the rest so they start with the player's values
-    'client.lua',
-    'radio.lua',
-    'weapons.lua',
-    'speedo.lua',
-    'status.lua',
-    'compass.lua',
-    'mic.lua',
-    'money.lua',
-    'notify.lua',
-    'pause.lua',
+    'client/bridge.lua',
+    'client/settings.lua', -- per-player /hud settings; before the rest so they start with the player's values
+    'client/client.lua',
+    'client/radio.lua',
+    'client/weapons.lua',
+    'client/speedo.lua',
+    'client/status.lua',
+    'client/compass.lua',
+    'client/mic.lua',
+    'client/money.lua',
+    'client/notify.lua',
+    'client/pause.lua',
 }
 
-server_script 'server.lua'
+server_script 'server/server.lua'
 
 -- Theme for FiveM's chat resource (html/chat.css): matches the HUD, the chat itself is untouched
 chat_theme 'vi-hud' {

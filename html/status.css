@@ -1,0 +1,81 @@
+/* Status icons above the minimap. --s = icon size (same as the speedometer's engine / fuel rings). */
+
+#status {
+    --u: min(1vw, 1.7778vh);
+    --k: 1;
+    --s: calc(1.65 * var(--u) * var(--k));
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    gap: calc(var(--s) * 0.24);
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+#status.st-hidden { opacity: 0; }
+
+/* Icons just fade in / out (status.js frees the spot after the fade-out) */
+#status .st {
+    flex: none;
+    width: var(--s);
+    height: var(--s);
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+#status .st.off { opacity: 0; }
+#status .st.gone { display: none; }
+
+#status svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 calc(var(--s) * 0.03) calc(var(--s) * 0.08) rgba(0, 0, 0, 0.35));
+}
+
+/* dark disc + dark teal rim, measured off the reference icons */
+#status .st-disc { fill: rgba(48, 48, 48, 0.94); stroke: #0b2328; stroke-width: 3.5; }
+
+#status .st-glyph { fill: var(--c); }
+#status .st-glyph .stroke { fill: none; stroke: var(--c); }
+#status .st-glyph text { fill: var(--c); font-family: 'Inter', 'Segoe UI', Arial, sans-serif; font-weight: 700; }
+#status .st-dim { opacity: 0.32; }
+#status .st-fill rect { transition: y 0.35s ease; }
+
+#status .st-health  { --c: #f5acc5; }
+#status .st-stamina { --c: #77ecd9; }
+#status .st-oxygen  { --c: #9ae1cb; }
+#status .st-armour  { --c: #b9a8f7; }
+#status .st-hunger  { --c: #f6c27e; }
+#status .st-thirst  { --c: #8fc4f7; }
+
+/* microphone: glyph filled to the voice range, dimmed while silent. Talking lights the rim and
+   adds a soft glow in the icon's colour (white, pink on the radio). */
+#status .st-voice { --c: #eceef3; --glow: rgba(236, 238, 243, 0.5); }
+#status .st-voice .st-glyph:not(.st-dim),
+#status .st-voice .st-disc,
+#status .st-voice svg { transition: opacity 0.15s ease, stroke 0.15s ease, filter 0.15s ease; }
+#status .st-voice .st-glyph:not(.st-dim) { opacity: 0.55; }
+#status .st-voice.talk .st-glyph:not(.st-dim) { opacity: 1; }
+#status .st-voice.talk .st-disc { stroke: var(--c); }
+#status .st-voice.talk svg {
+    filter:
+        drop-shadow(0 calc(var(--s) * 0.03) calc(var(--s) * 0.08) rgba(0, 0, 0, 0.35))
+        drop-shadow(0 0 calc(var(--s) * 0.22) var(--glow));
+}
+#status .st-voice.radio { --c: #f5acc5; --glow: rgba(238, 124, 163, 0.55); }
+#status .st-voice.mic-off { --c: #ee7ca3; }
+#status .st-voice .st-slash { display: none; stroke-linecap: round; }
+#status .st-voice.mic-off .st-slash { display: inline; }
+#status .st-slash .cut  { stroke: rgba(48, 48, 48, 0.94); stroke-width: 15; }
+#status .st-slash .line { stroke: var(--c); stroke-width: 7; }
+
+/* running low: slow pulse */
+#status .st.low .st-glyph:not(.st-dim) { animation: st-pulse 1.1s ease-in-out infinite; }
+
+@keyframes st-pulse {
+    50% { opacity: 0.35; }
+}

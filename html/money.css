@@ -1,0 +1,44 @@
+/* Money display, top-right. The amounts are drawn in-game by money.lua (GTA's Pricedown font);
+   these are the icon discs to the right of them, centred on each row's y (sent from money.lua).
+   Sizes in --u = 1% of a 16:9 screen width; --m = GTA's safe-zone margin (screen fraction). */
+
+#money {
+    --u: min(1vw, 1.7778vh);
+    --m: 0.05;
+    --k: 1;
+    position: absolute;
+    inset: 0;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+#money.mh-hidden { opacity: 0; }
+
+#money .mh-disc {
+    position: absolute;
+    right: calc(var(--m) * 100vw + 0.25 * var(--u));
+    /* 1.63u = 1.67x the height of the digits next to it (same as money.lua's DISC) */
+    width: calc(1.63 * var(--u) * var(--k));
+    height: calc(1.63 * var(--u) * var(--k));
+    transform: translateY(-50%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #201f2e;
+    box-shadow:
+        0 0 0 calc(0.05 * var(--u)) #16161f,
+        0 calc(0.04 * var(--u)) calc(0.2 * var(--u)) rgba(0, 0, 0, 0.45);
+}
+
+#money .mh-disc.mh-off { display: none; }
+
+/* the glyphs fill ~3/4 of their 24-unit box, so 60% makes them ~45% of the disc */
+#money .mh-disc svg {
+    width: 60%;
+    height: 60%;
+}
+
+#money .mh-bank svg { fill: #be88f1; }
+#money .mh-cash svg { fill: #78d876; }

@@ -1,0 +1,196 @@
+/* vi-hud theme for FiveM's chat resource (registered with chat_theme in fxmanifest.lua, so the
+   chat itself is untouched). Same language as the weapon wheel: clean text with a soft shadow
+   straight on the game (no boxes), Barlow Condensed names, one white slanted tab.
+   The chat's markup:
+     .chat-window > .chat-messages > .msg (> span > b = author, rest = text)
+     .chat-input > .input (> .prefix + textarea), .suggestions-wrap > .suggestions > .suggestion
+     .chat-hide-state
+   Sizes in --u = 1% of a 16:9 screen width, same as the HUD. */
+
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+    --u: min(1vw, 1.7778vh);
+    --edge: calc(2 * var(--u));     /* inset from the screen's top-left corner */
+    --cw: calc(30 * var(--u));      /* chat width */
+    --ch: 22vh;                     /* message area height */
+    --dim: #c6c6c9;
+    --display: 'Barlow Condensed', 'Oswald', 'Arial Narrow', sans-serif;
+    --body: 'Inter', 'Segoe UI', Arial, sans-serif;
+    /* the wheel's text shadow, a touch stronger: there's no panel behind the text */
+    --shadow:
+        0 0 calc(0.12 * var(--u)) rgba(0, 0, 0, 0.75),
+        0 calc(0.05 * var(--u)) calc(0.35 * var(--u)) rgba(0, 0, 0, 0.6);
+    --slant: polygon(0 0, 100% 0, calc(100% - 0.2 * var(--u)) 100%, 0 100%);
+}
+
+#app, #app * { font-family: var(--body); }
+
+/* ------------------------------------------------------------------ messages */
+
+.chat-window {
+    top: var(--edge);
+    left: var(--edge);
+    width: var(--cw);
+    max-width: none;
+    height: var(--ch);
+    /* no panel: the text shadow carries it, like the wheel's text */
+    background: none !important;
+}
+
+.chat-messages {
+    height: 100%;
+    margin: 0;
+    font-size: calc(0.8 * var(--u));
+    /* older lines fade out at the top instead of being cut */
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 calc(2 * var(--u)));
+    mask-image: linear-gradient(180deg, transparent 0, #000 calc(2 * var(--u)));
+}
+
+.msg {
+    margin: 0 0 calc(0.32 * var(--u));
+    color: #fff;
+    font-weight: 500;
+    line-height: 1.4;
+    text-shadow: var(--shadow);
+    word-wrap: break-word;
+    animation: vi-msg-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes vi-msg-in { from { opacity: 0; transform: translateY(calc(0.4 * var(--u))); } }
+
+/* multi-line messages: keep the line breaks, drop the stock hanging indent */
+.msg.multiline {
+    margin-left: 0;
+    text-indent: 0;
+    white-space: pre-line;
+}
+
+/* author: like the wheel's weapon name */
+.msg b {
+    margin-right: calc(0.4 * var(--u));
+    font-family: var(--display) !important;
+    font-size: calc(1 * var(--u));
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+.msg b * { font-family: var(--display) !important; }
+.msg em, .msg i { font-style: normal; }
+
+/* ------------------------------------------------------------------ input */
+
+.chat-input {
+    top: calc(var(--edge) + var(--ch) + 0.6 * var(--u));
+    left: var(--edge);
+    width: var(--cw);
+    max-width: none;
+    font-size: calc(0.8 * var(--u));
+}
+
+.chat-input > div.input {
+    align-items: stretch;
+    gap: calc(0.3 * var(--u));
+    background: none;
+}
+
+/* "CHAT" in the wheel's white slanted tab (the stock ➤ glyph is swapped for the word) */
+.prefix {
+    display: flex;
+    align-items: center;
+    height: auto;
+    padding: 0 calc(0.55 * var(--u)) 0 calc(0.45 * var(--u));
+    background: #fff;
+    color: #000 !important; /* the chat paints the mode's colour inline */
+    font-size: 0 !important;
+    line-height: 1;
+    clip-path: var(--slant);
+}
+
+.prefix::after {
+    content: 'Chat';
+    font-family: var(--display);
+    font-size: calc(1 * var(--u));
+    font-weight: 700;
+    text-transform: uppercase;
+    transform: translateY(-0.03em);
+}
+
+.chat-input textarea {
+    flex: 1;
+    height: auto;
+    min-height: calc(1.2 * var(--u));
+    padding: calc(0.32 * var(--u)) calc(0.55 * var(--u));
+    background: rgba(10, 10, 12, 0.45);
+    box-shadow: inset 0 calc(-0.08 * var(--u)) 0 rgba(255, 255, 255, 0.55);
+    color: #fff;
+    font-size: calc(0.8 * var(--u));
+    font-weight: 500;
+    line-height: calc(1.2 * var(--u));
+    text-shadow: var(--shadow);
+    caret-color: #fff;
+    resize: none;
+}
+
+/* ------------------------------------------------------------------ suggestions */
+
+.suggestions {
+    margin-top: calc(0.35 * var(--u));
+    padding: calc(0.2 * var(--u)) 0;
+    background: linear-gradient(90deg, rgba(10, 10, 12, 0.6), rgba(10, 10, 12, 0.35) 60%, rgba(10, 10, 12, 0));
+    font-size: calc(0.8 * var(--u));
+}
+
+.suggestion {
+    margin: 0;
+    padding: calc(0.22 * var(--u)) calc(0.55 * var(--u));
+    text-shadow: var(--shadow);
+}
+
+.suggestion p {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: calc(0.3 * var(--u));
+    font-family: var(--display) !important;
+    font-size: calc(0.98 * var(--u));
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.suggestion p span { font-family: var(--display) !important; }
+
+.suggestion .param { font-weight: 600; color: var(--dim); }
+.suggestion .param:not(.disabled) { color: #fff; text-decoration: underline; text-underline-offset: 0.18em; } /* parameter being typed */
+
+.help {
+    display: block;
+    color: var(--dim);
+    font-size: calc(0.68 * var(--u));
+    font-weight: 400;
+}
+
+.disabled { color: var(--dim); }
+
+/* "When active" / "Always" / "Hidden" (chat visibility mode) */
+.chat-hide-state {
+    margin: calc(0.35 * var(--u)) 0 0;
+    font-family: var(--display) !important;
+    font-size: calc(0.8 * var(--u));
+    font-weight: 600;
+    color: var(--dim);
+    text-shadow: var(--shadow);
+}
+
+/* ------------------------------------------------------------------ colours (^1-^9, a touch brighter) */
+
+.color-1 { color: #ff5a6e; }
+.color-2 { color: #9fe07a; }
+.color-3 { color: #ffc65a; }
+.color-4 { color: #4fb3ff; }
+.color-5 { color: #5fd4f0; }
+.color-6 { color: #c08cf0; }
+.color-8 { color: #e0344f; }
+.color-9 { color: #f07ea6; } /* the HUD's pink */

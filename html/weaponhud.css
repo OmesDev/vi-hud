@@ -1,0 +1,39 @@
+/* Weapon in hand, top-right. The ammo numbers above the icon are drawn in-game by weapons.lua
+   (GTA's Pricedown font); this is the icon under them, right-aligned to the same edge.
+   Sizes in --u = 1% of a 16:9 screen width; --m = GTA's safe-zone margin (screen fraction);
+   --ah = height of the ammo line (screen-height fraction, 0 when there's no ammo). */
+
+#weaponhud {
+    --u: min(1vw, 1.7778vh);
+    --m: 0.05;
+    --ah: 0;
+    --k: 1;
+    --mo: 0; /* money display height above it (screen-height fraction), 0 when that's hidden */
+    position: absolute;
+    right: calc(var(--m) * 100vw + 0.25 * var(--u));
+    top: calc(var(--m) * 100vh + 0.25 * var(--u) + var(--ah) * 100vh + 0.25 * var(--u) + var(--mo) * 100vh);
+    display: flex;
+    justify-content: flex-end;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+#weaponhud.wh-hidden { opacity: 0; }
+
+#weaponhud .wh-icon img {
+    display: block;
+    max-width: calc(5.6 * var(--u) * var(--k));
+    max-height: calc(1.8 * var(--u) * var(--k));
+    object-fit: contain;
+    filter: drop-shadow(0 calc(0.06 * var(--u)) calc(0.15 * var(--u)) rgba(0, 0, 0, 0.55));
+}
+
+#weaponhud .wh-alt {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: calc(1.1 * var(--u));
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 calc(0.12 * var(--u)) rgba(0, 0, 0, 0.85);
+}

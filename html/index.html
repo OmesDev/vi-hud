@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>vi-hud</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800&family=Bebas+Neue&family=Black+Ops+One&family=Bungee&family=Monoton&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:ital,wght@1,700&family=Righteous&family=Rubik+Mono+One&family=Rye&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+    <!-- Font Awesome: icons scripts pass to notifications (ox_lib style icon = 'car'); without it the type icon is used -->
+    <link id="fa-css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="radio.css">
+    <link rel="stylesheet" href="weapons.css">
+    <link rel="stylesheet" href="speedo.css">
+    <link rel="stylesheet" href="status.css">
+    <link rel="stylesheet" href="weaponhud.css">
+    <link rel="stylesheet" href="compass.css">
+    <link rel="stylesheet" href="money.css">
+    <link rel="stylesheet" href="notify.css">
+    <link rel="stylesheet" href="settings.css">
+    <link rel="stylesheet" href="pause.css">
+    <link rel="stylesheet" href="mapui.css">
+    <!-- fail-safe: keep the speedometer / wheel invisible if their stylesheet ever fails to load -->
+    <style>#mapui.mu-hidden, #pause.pm-hidden, #settings.hs-hidden, #speedo.sp-hidden, #wheel.ww-hidden, #status.st-hidden, #weaponhud.wh-hidden, #compass.cp-hidden, #money.mh-hidden { opacity: 0; } .mh-disc svg { width: 1vw; height: 1vw; } .wh-icon img { max-height: 1.8vw; } .st svg { width: 1.65vw; height: 1.65vw; } .sp-ring { width: 1.6vw; height: 1.6vw; }</style>
+</head>
+<body>
+    <div id="bounds" class="hidden"></div>
+
+    <div id="minimap" class="fade">
+        <div id="navstack">
+            <div id="street" class="hidden"></div>
+            <div id="turn" class="hidden">
+                <div class="turn-text">
+                    <div class="turn-title"></div>
+                    <div class="turn-dist"></div>
+                </div>
+                <div class="turn-icon"><svg viewBox="0 0 24 24"></svg></div>
+            </div>
+        </div>
+        <div id="frame">
+            <div class="tint" id="tint-day"></div>
+            <div class="tint" id="tint-night"></div>
+            <div id="glass"></div>
+            <div id="distance"></div>
+        </div>
+        <div id="arrow">
+            <svg viewBox="0 0 24 24"><path d="M12 3.5 L19.2 19.5 L12 15.6 L4.8 19.5 Z"/></svg>
+        </div>
+        <div id="north" class="marker">N</div>
+
+        <div class="handle" data-h="nw"></div>
+        <div class="handle" data-h="ne"></div>
+        <div class="handle" data-h="sw"></div>
+        <div class="handle" data-h="se"></div>
+    </div>
+
+    <div id="editor" class="hidden">
+        <div class="title">Minimap layout</div>
+        <div class="hint">Move or resize the panel anywhere inside the dotted area, and the map cut-out follows it. Make sure the faded arrow sits exactly on GTA's white player arrow (shown while editing); drag it if it doesn't. Arrow keys nudge the panel (Shift = 10px, Ctrl = resize). Enter saves, Esc cancels.</div>
+        <div class="buttons">
+            <button id="btn-reset">Reset</button>
+            <button id="btn-copy">Copy values</button>
+            <button id="btn-cancel">Cancel</button>
+            <button id="btn-save" class="primary">Save</button>
+        </div>
+        <textarea id="values" readonly class="hidden"></textarea>
+    </div>
+
+    <div id="radio" class="rs-hidden">
+        <div class="rs-text rs-radio">Radio</div>
+        <div class="rs-text rs-demand">On Demand</div>
+        <i class="rs-knob"></i>
+        <i class="rs-rail"></i>
+        <i class="rs-dot"></i>
+
+        <div class="rs-tiles"></div>
+
+        <i class="rs-mute-dot"></i>
+        <div class="rs-text rs-mute">Mute</div>
+
+        <i class="rs-line"></i>
+        <div class="rs-text rs-name"></div>
+        <div class="rs-text rs-title"></div>
+        <div class="rs-text rs-artist"></div>
+    </div>
+
+    <div id="status" class="st-hidden"></div>
+
+
+    <div id="weaponhud" class="wh-hidden">
+        <div class="wh-icon"></div>
+    </div>
+
+    <div id="money" class="mh-hidden">
+        <div class="mh-disc mh-bank mh-off"><svg viewBox="0 0 24 24"><path d="M12 2.6 3 7.1v2.1h18V7.1z"/><path d="M5 10.4h2.2v6.6H5zm4 0h2.2v6.6H9zm3.8 0H15v6.6h-2.2zm4 0H19v6.6h-2.2z"/><path d="M3 18h18v2.6H3z"/></svg></div>
+        <div class="mh-disc mh-cash mh-off"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M5.6 4.6h10.9c.6 0 1 .4 1 1v1.9H5.6a.8.8 0 0 0 0 1.6H19.4c.6 0 1 .4 1 1v8.7c0 .6-.4 1-1 1H5.6a2.6 2.6 0 0 1-2.6-2.6V7.2a2.6 2.6 0 0 1 2.6-2.6zM16.4 12.4a1.5 1.5 0 1 0 0 3a1.5 1.5 0 1 0 0-3z"/></svg></div>
+    </div>
+
+    <div id="notify"></div>
+
+    <div id="compass" class="cp-hidden">
+        <div class="cp-tape">
+            <div class="cp-window"><div class="cp-strip"></div></div>
+            <div class="cp-wp cp-off"></div>
+        </div>
+        <div class="cp-caret"></div>
+        <div class="cp-deg">0</div>
+    </div>
+
+    <div id="speedo" class="sp-hidden">
+        <div class="sp-line">
+            <div class="sp-text sp-speed">0</div>
+            <div class="sp-text sp-unit">mph</div>
+        </div>
+        <div class="sp-alt"><span class="sp-alt-v">0</span><span class="sp-alt-u">alt</span></div>
+        <div class="sp-status">
+            <div class="sp-stat sp-engine"><svg class="sp-ring" viewBox="0 0 50 50" width="16" height="16"><circle class="sp-ring-track" cx="25" cy="25" r="22.5"/><circle class="sp-ring-fill" cx="25" cy="25" r="22.5" transform="rotate(-90 25 25)"/><path class="sp-ico" transform="translate(10 10) scale(1.25)" d="M8 3.5h7v2h-2.5V7H16l2 2h1V8h2.2v8H19v-1h-1l-2.5 3H9l-2-2.2H6v-2.3H4.4V16H2.4V9.5h2V11H6V9.2L8 7h2.5V5.5H8z"/></svg></div>
+            <div class="sp-stat sp-fuel"><svg class="sp-ring" viewBox="0 0 50 50" width="16" height="16"><circle class="sp-ring-track" cx="25" cy="25" r="22.5"/><circle class="sp-ring-fill" cx="25" cy="25" r="22.5" transform="rotate(-90 25 25)"/><path class="sp-ico" transform="translate(10 10) scale(1.25)" fill-rule="evenodd" d="M4.5 4h8.5v16H4.5zM6.3 5.8v4.4h4.9V5.8z"/><path class="sp-hose" transform="translate(10 10) scale(1.25)" d="M13 10.3h1.3c.8 0 1.4.6 1.4 1.4v4.6a1.2 1.2 0 0 0 2.4 0V9.6L16.4 7.2"/></svg></div>
+            <div class="sp-stat sp-belt off"><svg class="sp-ring" viewBox="0 0 50 50" width="16" height="16"><defs><mask id="sp-belt-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="50" height="50"><rect width="50" height="50" fill="#fff"/><path d="M12.5 23.3L37.5 37.4" stroke="#000" stroke-width="2.3"/></mask></defs><circle class="sp-ring-track" cx="25" cy="25" r="22.5"/><circle class="sp-ring-fill" cx="25" cy="25" r="22.5" transform="rotate(-90 25 25)"/><path class="sp-ico" d="M25 12.8a4.2 4.2 0 1 0 0 8.4a4.2 4.2 0 1 0 0-8.4z"/><path class="sp-ico" mask="url(#sp-belt-cut)" d="M15.6 35.6V29.6C15.6 25.4 18.6 22.6 22.8 22.6H27.2C31.4 22.6 34.4 25.4 34.4 29.6V35.6Q34.4 36.8 33.2 36.8H16.8Q15.6 36.8 15.6 35.6Z"/></svg></div>
+        </div>
+        <div class="sp-gear"></div>
+    </div>
+
+    <!-- backdrop while ox_inventory is open (its page sits on top of this one) -->
+    <div id="invdim"></div>
+
+    <div id="wheel" class="ww-hidden">
+        <div class="ww-dim"></div>
+        <div class="ww-head">
+            <div class="ww-key"></div>
+            <div class="ww-tabs">
+                <div class="ww-tab ww-tab-w on"><span>Weapons</span></div>
+                <div class="ww-tab ww-tab-i"><span>Items</span></div>
+            </div>
+        </div>
+        <div class="ww-ring"></div>
+        <div class="ww-tiles"></div>
+        <div class="ww-name"></div>
+        <div class="ww-cat"></div>
+    </div>
+
+    <!-- Frame around GTA's screens opened from the pause menu (map, settings, key bindings), see pause.lua -->
+    <div id="mapui" class="mu-hidden">
+        <div class="mu-hbar"><b class="mu-now"></b></div>
+        <div class="mu-band"><div class="mu-hints"></div></div>
+        <div class="mu-card">
+            <div class="mu-label">Waypoint</div>
+            <div class="mu-dist"><b></b><small></small></div>
+        </div>
+    </div>
+
+    <!-- Pause menu (Esc), see pause.lua -->
+    <div id="pause" class="pm-hidden">
+        <div class="pm-bg"></div>
+        <div class="pm-player">
+            <div class="pm-pinfo">
+                <div class="pm-name"></div>
+                <div class="pm-meta"></div>
+                <div class="pm-money">
+                    <div class="pm-chip pm-bank"><i><svg viewBox="0 0 24 24"><path d="M12 2.6 3 7.1v2.1h18V7.1z"/><path d="M5 10.4h2.2v6.6H5zm4 0h2.2v6.6H9zm3.8 0H15v6.6h-2.2zm4 0H19v6.6h-2.2z"/><path d="M3 18h18v2.6H3z"/></svg></i><span></span></div>
+                    <div class="pm-chip pm-cash"><i><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M5.6 4.6h10.9c.6 0 1 .4 1 1v1.9H5.6a.8.8 0 0 0 0 1.6H19.4c.6 0 1 .4 1 1v8.7c0 .6-.4 1-1 1H5.6a2.6 2.6 0 0 1-2.6-2.6V7.2a2.6 2.6 0 0 1 2.6-2.6zM16.4 12.4a1.5 1.5 0 1 0 0 3a1.5 1.5 0 1 0 0-3z"/></svg></i><span></span></div>
+                </div>
+            </div>
+            <div class="pm-avatar">
+                <svg class="pm-ghost" viewBox="0 0 24 24"><path d="M12 3.2a4.3 4.3 0 1 0 0 8.6a4.3 4.3 0 1 0 0-8.6zM3.6 21.5c.4-4.6 3.9-7.6 8.4-7.6s8 3 8.4 7.6z"/></svg>
+                <img alt="">
+            </div>
+        </div>
+        <div class="pm-dock">
+            <div class="pm-title"></div>
+            <div class="pm-rail"></div>
+            <div class="pm-track"><i></i></div>
+            <div class="pm-hints">
+                <span><i class="pm-key">Enter</i>Select</span>
+                <span><i class="pm-key">Esc</i>Resume</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HUD settings menu (/hud), see settings.lua -->
+    <div id="settings" class="hs-hidden">
+        <div class="hs-box">
+            <div class="hs-title">HUD Settings<small>Saved on this PC · <span class="hs-cmd">/hud</span></small></div>
+            <div class="hs-tabs"></div>
+            <div class="hs-list"></div>
+            <div class="hs-desc"></div>
+            <div class="hs-foot">
+                <div class="hs-hints">
+                    <span><i class="hs-key">↑↓</i>Select</span>
+                    <span><i class="hs-key">←→</i>Change</span>
+                    <span><i class="hs-key">Q</i><i class="hs-key">E</i>Tab</span>
+                    <span><i class="hs-key">⌫</i>Default</span>
+                    <span><i class="hs-key">Esc</i>Close</span>
+                </div>
+                <div class="hs-btns">
+                    <button class="hs-reset">Reset all</button>
+                    <button class="hs-close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="radio.js"></script>
+    <script src="weapons.js"></script>
+    <script src="speedo.js"></script>
+    <script src="status.js"></script>
+    <script src="weaponhud.js"></script>
+    <script src="compass.js"></script>
+    <script src="money.js"></script>
+    <script src="notify.js"></script>
+    <script src="settings.js"></script>
+    <script src="pause.js"></script>
+    <script src="mapui.js"></script>
+</body>
+</html>

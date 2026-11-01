@@ -1,0 +1,175 @@
+/* GTA VI style radio station strip.
+   All sizes are in --u = 1% of a 16:9 screen width (measured off the reference frame). */
+
+#radio {
+    --u: min(1vw, 1.7778vh);
+    --tile: calc(5.58 * var(--u));
+    --pitch: calc(6.37 * var(--u));
+    --top: calc(1.5 * var(--u));
+    --ink: #eeeef0;
+    --shadow:
+        0 0 calc(0.12 * var(--u)) rgba(0, 0, 0, 0.85),
+        0 calc(0.06 * var(--u)) calc(0.25 * var(--u)) rgba(0, 0, 0, 0.55);
+
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 0;
+    height: 0;
+    font-family: 'Barlow Condensed', 'Oswald', 'Arial Narrow', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--ink);
+    opacity: 1;
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+}
+
+#radio.rs-hidden { opacity: 0; transition-duration: 0.3s; }
+
+#radio .rs-text {
+    position: absolute;
+    line-height: 1;
+    white-space: nowrap;
+    text-shadow: var(--shadow);
+}
+
+/* ------------------------------------------------- radio / on demand */
+
+#radio .rs-radio  { right: calc(19.67 * var(--u)); top: calc(1.62 * var(--u)); font-size: calc(1.31 * var(--u)); }
+#radio .rs-demand { right: calc(19.67 * var(--u)); top: calc(3.75 * var(--u)); font-size: calc(1.13 * var(--u)); }
+
+#radio .rs-knob {
+    position: absolute;
+    left: calc(-18.585 * var(--u));
+    top: calc(1.695 * var(--u));
+    width: calc(1.25 * var(--u));
+    height: calc(1.25 * var(--u));
+    border-radius: 50%;
+    background: rgba(22, 23, 25, 0.92);
+    box-shadow: 0 0 calc(0.2 * var(--u)) rgba(0, 0, 0, 0.35);
+}
+
+#radio .rs-rail {
+    position: absolute;
+    left: calc(-18.03 * var(--u));
+    top: calc(2.945 * var(--u));
+    width: calc(0.14 * var(--u));
+    height: calc(1.12 * var(--u));
+    background: rgba(238, 238, 242, 0.55);
+}
+
+#radio .rs-dot {
+    position: absolute;
+    left: calc(-18.335 * var(--u));
+    top: calc(4.025 * var(--u));
+    width: calc(0.75 * var(--u));
+    height: calc(0.75 * var(--u));
+    border-radius: 50%;
+    background: var(--ink);
+    box-shadow: 0 0 calc(0.15 * var(--u)) rgba(0, 0, 0, 0.45);
+}
+
+/* ------------------------------------------------------------- tiles */
+
+#radio .rs-tile {
+    --off: 0;
+    position: absolute;
+    left: calc(var(--tile) / -2);
+    top: var(--top);
+    width: var(--tile);
+    height: var(--tile);
+    transform: translateX(calc(var(--off) * var(--pitch)));
+    transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.2s ease;
+    box-shadow: 0 calc(0.12 * var(--u)) calc(0.5 * var(--u)) rgba(0, 0, 0, 0.35);
+}
+
+#radio .rs-tile.rs-jump { transition: none; }
+
+/* selected outline (outside the logo, so the logo keeps its size) */
+#radio .rs-tile::after {
+    content: '';
+    position: absolute;
+    inset: calc(-0.21 * var(--u));
+    border: calc(0.21 * var(--u)) solid #ececf0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+#radio .rs-tile.rs-sel::after { opacity: 1; }
+
+#radio.rs-muted .rs-tile { opacity: 0.45; }
+#radio.rs-muted .rs-tile.rs-out { opacity: 0; }
+#radio .rs-tile.rs-out { opacity: 0; }
+
+#radio .rs-tile img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* generated logo */
+#radio .rs-logo {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    text-transform: none;
+    letter-spacing: 0;
+    line-height: 0.92;
+    white-space: nowrap;
+}
+
+#radio .rs-logo span { display: block; }
+
+/* -------------------------------------------------------------- mute */
+
+#radio .rs-mute-dot {
+    position: absolute;
+    left: calc(16.895 * var(--u));
+    top: calc(3.475 * var(--u));
+    width: calc(1.55 * var(--u));
+    height: calc(1.55 * var(--u));
+    border-radius: 50%;
+    background: var(--ink);
+    box-shadow: 0 0 calc(0.2 * var(--u)) rgba(0, 0, 0, 0.4);
+    transition: box-shadow 0.15s ease;
+}
+
+#radio.rs-muted .rs-mute-dot {
+    box-shadow:
+        0 0 0 calc(0.18 * var(--u)) rgba(0, 0, 0, 0.55),
+        0 0 0 calc(0.39 * var(--u)) #ececf0;
+}
+
+#radio .rs-mute { left: calc(18.92 * var(--u)); top: calc(3.49 * var(--u)); font-size: calc(1.39 * var(--u)); }
+
+/* -------------------------------------------------------------- info */
+
+#radio .rs-line {
+    position: absolute;
+    left: calc(-5.085 * var(--u));
+    top: calc(8.15 * var(--u));
+    width: calc(10.17 * var(--u));
+    height: calc(0.2 * var(--u));
+    background: #e4e5ea;
+    box-shadow: 0 0 calc(0.2 * var(--u)) rgba(0, 0, 0, 0.35);
+}
+
+#radio .rs-name,
+#radio .rs-title,
+#radio .rs-artist {
+    left: 0;
+    transform: translateX(-50%);
+}
+
+#radio .rs-name   { top: calc(8.76 * var(--u));  font-size: calc(1.48 * var(--u)); font-weight: 700; letter-spacing: 0.01em; }
+#radio .rs-title  { top: calc(10.71 * var(--u)); font-size: calc(1.29 * var(--u)); letter-spacing: 0; }
+#radio .rs-artist { top: calc(12.10 * var(--u)); font-size: calc(1.25 * var(--u)); letter-spacing: 0; }

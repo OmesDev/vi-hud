@@ -1,0 +1,159 @@
+/* GTA VI style compass tape, top-centre. Sizes in --u = 1% of a 16:9 screen width.
+   --m = GTA's safe-zone margin (screen fraction), --k = Config.Compass.Scale. */
+
+#compass {
+    --u: min(1vw, 1.7778vh);
+    --m: 0.05;
+    --k: 1;
+    --cu: calc(var(--u) * var(--k));
+    --pink: #ee7ca3;
+    --shadow:
+        0 0 calc(0.12 * var(--cu)) rgba(0, 0, 0, 0.85),
+        0 calc(0.06 * var(--cu)) calc(0.3 * var(--cu)) rgba(0, 0, 0, 0.55);
+
+    position: absolute;
+    left: 50%;
+    top: calc(var(--m) * 100vh);
+    width: calc(24 * var(--cu));
+    font-family: 'Barlow Condensed', 'Oswald', 'Arial Narrow', sans-serif;
+    text-transform: uppercase;
+    color: #fff;
+    opacity: 1;
+    transform: translateX(-50%);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+}
+
+#compass.cp-hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(calc(-0.6 * var(--cu)));
+}
+
+/* radio station strip is up in the same spot */
+#compass.cp-aside { opacity: 0; transition-duration: 0.18s; }
+
+/* soft dark backdrop so it reads over a bright sky */
+#compass::before {
+    content: '';
+    position: absolute;
+    left: -6%;
+    right: -6%;
+    top: -45%;
+    bottom: -95%;
+    background: radial-gradient(closest-side, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.16) 55%, rgba(0, 0, 0, 0) 100%);
+}
+
+#compass .cp-tape {
+    position: relative;
+    height: calc(2.45 * var(--cu));
+}
+
+/* ticks + labels, fading out towards both ends */
+#compass .cp-window {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 24%, #000 76%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 24%, #000 76%, transparent 100%);
+    filter: drop-shadow(0 0 calc(0.1 * var(--cu)) rgba(0, 0, 0, 0.6));
+}
+
+/* baseline */
+#compass .cp-window::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(0.08 * var(--cu));
+    background: rgba(255, 255, 255, 0.28);
+}
+
+#compass .cp-strip {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    will-change: transform;
+}
+
+#compass .cp-tick {
+    position: absolute;
+    bottom: 0;
+    width: calc(0.1 * var(--cu));
+    height: calc(0.36 * var(--cu));
+    margin-left: calc(-0.05 * var(--cu));
+    border-radius: calc(0.05 * var(--cu));
+    background: rgba(255, 255, 255, 0.4);
+}
+
+#compass .cp-tick.cp-major { height: calc(0.58 * var(--cu)); background: rgba(255, 255, 255, 0.62); }
+#compass .cp-tick.cp-key   { height: calc(0.72 * var(--cu)); background: rgba(255, 255, 255, 0.85); }
+
+#compass .cp-label {
+    position: absolute;
+    bottom: calc(0.95 * var(--cu));
+    transform: translateX(-50%);
+    font-size: calc(0.95 * var(--cu));
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.72);
+    text-shadow: var(--shadow);
+}
+
+#compass .cp-label.cp-card { font-size: calc(1.35 * var(--cu)); font-weight: 700; color: #fff; }
+#compass .cp-label.cp-n    { color: var(--pink); }
+
+/* waypoint: pink dot riding on the baseline, pinned (dimmed) to the edge when off the tape */
+#compass .cp-wp {
+    position: absolute;
+    left: 50%;
+    bottom: calc(-0.31 * var(--cu));
+    width: calc(0.62 * var(--cu));
+    height: calc(0.62 * var(--cu));
+    margin-left: calc(-0.31 * var(--cu));
+    border-radius: 50%;
+    background: var(--pink);
+    box-shadow:
+        0 0 0 calc(0.12 * var(--cu)) rgba(255, 255, 255, 0.9),
+        0 calc(0.06 * var(--cu)) calc(0.3 * var(--cu)) rgba(0, 0, 0, 0.55);
+    transition: opacity 0.25s ease;
+}
+
+#compass .cp-wp.cp-edge { opacity: 0.55; }
+#compass .cp-wp.cp-off  { opacity: 0; }
+
+/* centre caret + heading readout under the baseline */
+#compass .cp-caret {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 0.28 * var(--cu));
+    width: calc(0.7 * var(--cu));
+    height: calc(0.42 * var(--cu));
+    margin-left: calc(-0.35 * var(--cu));
+    background: #fff;
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    filter: drop-shadow(0 0 calc(0.1 * var(--cu)) rgba(0, 0, 0, 0.6));
+}
+
+#compass .cp-deg {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 0.85 * var(--cu));
+    transform: translateX(-50%);
+    font-size: calc(1.15 * var(--cu));
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-shadow: var(--shadow);
+}
+
+#compass .cp-deg::after { content: '\00B0'; position: absolute; left: 100%; font-weight: 600; }
+
+#compass.cp-nodeg .cp-deg,
+#compass.cp-nodeg .cp-caret { display: none; }

@@ -1,0 +1,216 @@
+/* GTA VI style speedometer, bottom-right. Sizes in --u = 1% of a 16:9 screen width.
+   --m = GTA's safe-zone margin (screen fraction), the same one the minimap sits on. */
+
+#speedo {
+    --u: min(1vw, 1.7778vh);
+    --m: 0.05;
+    --size: calc(10.4 * var(--u));
+    --pink: #ee7ca3;
+    --teal: #22dcc0;
+    --ok: #a9e6a2;
+    --soft: #c6c6c9;
+    --shadow:
+        0 0 calc(0.12 * var(--u)) rgba(0, 0, 0, 0.85),
+        0 calc(0.06 * var(--u)) calc(0.3 * var(--u)) rgba(0, 0, 0, 0.55);
+
+    position: absolute;
+    right: calc(var(--m) * 100vw);
+    bottom: calc(var(--m) * 100vh);
+    width: var(--size);
+    height: var(--size);
+    font-family: 'Barlow Condensed', 'Oswald', 'Arial Narrow', sans-serif;
+    text-transform: uppercase;
+    color: #fff;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+}
+
+#speedo.sp-hidden {
+    opacity: 0;
+    transform: translateY(calc(0.6 * var(--u)));
+}
+
+/* soft dark backdrop so it reads over a bright sky */
+#speedo::before {
+    content: '';
+    position: absolute;
+    inset: -12%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.2) 45%, rgba(0, 0, 0, 0) 70%);
+}
+
+#speedo .sp-arc {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 0 calc(0.1 * var(--u)) rgba(0, 0, 0, 0.6));
+}
+
+#speedo .sp-track { stroke: rgba(255, 255, 255, 0.18); }
+#speedo .sp-red   { stroke: rgba(238, 124, 163, 0.45); }
+#speedo .sp-rpm   { stroke: #fff; transition: stroke-dasharray 0.1s linear, stroke 0.15s ease; }
+#speedo.sp-redline .sp-rpm { stroke: var(--pink); }
+#speedo .sp-ticks line { stroke: rgba(255, 255, 255, 0.45); stroke-width: 0.7; }
+#speedo.sp-norpm .sp-rpm,
+#speedo.sp-norpm .sp-red { display: none; }
+
+#speedo .sp-text {
+    position: absolute;
+    left: 50%;
+    line-height: 1;
+    white-space: nowrap;
+    transform: translate(-50%, -55%);
+    text-shadow: var(--shadow);
+}
+
+#speedo .sp-speed {
+    top: 39.5%;
+    font-size: calc(3.9 * var(--u));
+    font-weight: 700;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+#speedo .sp-unit {
+    top: 58.5%;
+    font-size: calc(1.05 * var(--u));
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--soft);
+}
+
+/* engine + fuel: ring gauges (fill clockwise from 12 o'clock) with a solid icon inside */
+#speedo .sp-status {
+    position: absolute;
+    left: 50%;
+    top: 74%;
+    display: flex;
+    gap: calc(0.36 * var(--u));
+    transform: translate(-50%, -50%);
+}
+
+#speedo .sp-stat { --c: var(--ok); }
+#speedo .sp-stat.low { --c: var(--pink); }
+#speedo .sp-stat.off { display: none; }
+
+#speedo .sp-ring {
+    display: block;
+    width: calc(1.65 * var(--u));
+    height: calc(1.65 * var(--u));
+    overflow: visible;
+    filter: drop-shadow(0 0 calc(0.1 * var(--u)) rgba(0, 0, 0, 0.7));
+}
+
+#speedo .sp-ring circle { fill: none; stroke-width: 3; }
+#speedo .sp-ring-track { stroke: var(--c); stroke-opacity: 0.3; fill: rgba(16, 16, 20, 0.55) !important; }
+#speedo .sp-ring-fill { stroke: var(--c); transition: stroke-dasharray 0.4s ease, stroke 0.3s ease; }
+#speedo .sp-ico { fill: var(--c); transition: fill 0.3s ease; }
+#speedo .sp-hose { fill: none; stroke: var(--c); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.3s ease; }
+
+/* seatbelt (bust with a strap across it): green ring like engine / fuel when buckled; red disc, white icon when not */
+#speedo .sp-belt.unbuckled { --c: #fff; }
+#speedo .sp-belt.unbuckled .sp-ring-track { fill: #9e1b20 !important; stroke: #2e2e30; stroke-opacity: 0.9; }
+#speedo .sp-belt.unbuckled .sp-ring-fill { stroke-opacity: 0; }
+
+/* gear, in the gap at the bottom of the arc */
+#speedo .sp-gear {
+    position: absolute;
+    left: 50%;
+    top: 91%;
+    min-width: calc(1.45 * var(--u));
+    height: calc(1.45 * var(--u));
+    padding: 0 calc(0.3 * var(--u));
+    border-radius: calc(0.18 * var(--u));
+    background: #fff;
+    color: #000;
+    font-size: calc(1.15 * var(--u));
+    font-weight: 800;
+    line-height: calc(1.45 * var(--u));
+    text-align: center;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 calc(0.2 * var(--u)) rgba(0, 0, 0, 0.45);
+}
+
+#speedo .sp-gear:empty { display: none; }
+#speedo.sp-redline .sp-gear { background: var(--pink); color: #fff; }
+
+/* altitude: minimal style only */
+#speedo .sp-alt { display: none; }
+
+/* ------------------------------------------------------------------ minimal style
+   Speed + unit, altitude (flying), then the engine / fuel / seatbelt icons in a row.
+   speedo.js pins it next to the minimap panel's bottom-right corner. */
+
+#speedo.sp-minimal {
+    --gap: calc(1.1 * var(--u));
+    right: auto;
+    width: auto;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(0.45 * var(--u));
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+#speedo.sp-minimal::before,
+#speedo.sp-minimal .sp-arc,
+#speedo.sp-minimal .sp-gear { display: none; }
+
+/* speed + unit on one baseline */
+#speedo.sp-minimal .sp-line {
+    display: flex;
+    align-items: baseline;
+    gap: calc(0.35 * var(--u));
+}
+
+#speedo.sp-minimal .sp-text {
+    position: static;
+    transform: none;
+}
+
+#speedo.sp-minimal .sp-speed {
+    font-size: calc(2.55 * var(--u));
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 0.9;
+}
+
+#speedo.sp-minimal .sp-unit,
+#speedo.sp-minimal .sp-alt-u {
+    font-size: calc(0.72 * var(--u));
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #fff;
+}
+
+#speedo.sp-minimal .sp-alt {
+    display: flex;
+    align-items: baseline;
+    gap: calc(0.3 * var(--u));
+    line-height: 1;
+    text-shadow: var(--shadow);
+}
+
+#speedo.sp-minimal .sp-alt.off { display: none; }
+
+#speedo.sp-minimal .sp-alt-v {
+    font-size: calc(1.3 * var(--u));
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+#speedo.sp-minimal .sp-status {
+    position: static;
+    transform: none;
+    margin-top: calc(0.15 * var(--u));
+}
+
+#speedo.sp-minimal .sp-ring {
+    width: calc(1.45 * var(--u));
+    height: calc(1.45 * var(--u));
+}

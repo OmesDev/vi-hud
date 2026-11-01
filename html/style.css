@@ -1,0 +1,306 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: 'Inter', 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+    user-select: none;
+}
+
+.hidden { display: none !important; }
+
+/* --------------------------------------------------------------- frame */
+
+#minimap {
+    position: absolute;
+    --w: 270px;
+    --h: 150px;
+    --r: 14px;
+    transition: opacity 0.25s ease;
+}
+
+#minimap.fade { opacity: 0; }
+
+#frame {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--r);
+    border: 2px solid rgba(238, 238, 244, 0.6);
+    overflow: hidden;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.06),
+        0 6px 22px rgba(0, 0, 0, 0.18);
+}
+
+.tint {
+    position: absolute;
+    inset: 0;
+    transition: opacity 2s linear;
+}
+
+#glass {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 45%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+/* ------------------------------------------------------------ distance */
+
+#distance {
+    position: absolute;
+    left: calc(var(--w) * 0.03);
+    top: calc(var(--h) * 0.055);
+    font-size: max(11px, calc(var(--h) * 0.088));
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    color: #fff;
+    text-shadow:
+        0 0 1px rgba(20, 20, 24, 0.95),
+        0 0 2px rgba(20, 20, 24, 0.7),
+        0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+/* -------------------------------------------------------- player arrow */
+
+#arrow {
+    --s: max(18px, calc(var(--h) * 0.1));
+    position: absolute;
+    width: var(--s);
+    height: var(--s);
+    margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
+    border-radius: 50%;
+    background: rgba(36, 36, 40, 0.92);
+    border: max(1.5px, calc(var(--s) * 0.075)) solid #f4f4f6;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#arrow svg {
+    width: 62%;
+    height: 62%;
+    fill: #fff;
+}
+
+#minimap.native-arrow #arrow { display: none; }
+
+/* ------------------------------------------------------- edge markers */
+
+.marker {
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-radius: 50%;
+    z-index: 2;
+    will-change: transform;
+}
+
+#north {
+    --s: max(16px, calc(var(--h) * 0.088));
+    width: var(--s);
+    height: var(--s);
+    margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
+    background: #0e0e10;
+    border: max(1.5px, calc(var(--s) * 0.08)) solid #fff;
+    color: #fff;
+    font-size: calc(var(--s) * 0.56);
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+/* ------------------------------------------- street bar + turn card */
+/* Sizes measured off the reference, as fractions of the map width; --nk = Config.NavScale. */
+
+#navstack {
+    --nw: calc(var(--w) * var(--nk, 0.85));
+    --nav-r: calc(var(--nw) * 0.034);
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + var(--nw) * 0.027);
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--nw) * 0.03);
+    pointer-events: none;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+#street,
+#turn {
+    border-radius: var(--nav-r);
+    background: rgba(30, 31, 42, 0.86);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.09),
+        0 3px 12px rgba(0, 0, 0, 0.2);
+}
+
+#street {
+    height: calc(var(--nw) * 0.128);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 calc(var(--nw) * 0.05);
+    font-size: calc(var(--nw) * 0.077);
+    font-weight: 400;
+    letter-spacing: 0.005em;
+    color: #c2c4ce;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#turn {
+    height: calc(var(--nw) * 0.199);
+    display: flex;
+    overflow: hidden;
+}
+
+.turn-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: calc(var(--nw) * 0.004);
+    padding-left: calc(var(--nw) * 0.055);
+    white-space: nowrap;
+}
+
+.turn-title {
+    font-size: calc(var(--nw) * 0.076);
+    font-weight: 600;
+    line-height: 1.12;
+    color: #e4e4ea;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.turn-dist {
+    font-size: calc(var(--nw) * 0.074);
+    font-weight: 400;
+    line-height: 1.12;
+    color: #d4d5dc;
+}
+
+.turn-icon {
+    flex: none;
+    height: 100%;
+    aspect-ratio: 1.08;
+    background: #37c6aa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.turn-icon svg {
+    width: 64%;
+    height: 64%;
+    fill: none;
+    stroke: #0c1f1c;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.turn-icon svg .head {
+    fill: #0c1f1c;
+    stroke-width: 1;
+}
+
+/* -------------------------------------------------------------- editor */
+
+.handle { display: none; }
+
+#bounds {
+    position: absolute;
+    border: 1px dashed rgba(255, 255, 255, 0.55);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+#minimap.editing #frame {
+    outline: 2px dashed #ef6a9b;
+    outline-offset: 2px;
+    cursor: move;
+}
+
+#minimap.editing #arrow { cursor: grab; opacity: 0.5; outline: 2px solid #ef6a9b; outline-offset: 3px; }
+
+#minimap.editing .handle {
+    display: block;
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ef6a9b;
+    border: 2px solid #fff;
+    z-index: 5;
+}
+
+.handle[data-h="nw"] { left: -9px;  top: -9px;    cursor: nwse-resize; }
+.handle[data-h="ne"] { right: -9px; top: -9px;    cursor: nesw-resize; }
+.handle[data-h="sw"] { left: -9px;  bottom: -9px; cursor: nesw-resize; }
+.handle[data-h="se"] { right: -9px; bottom: -9px; cursor: nwse-resize; }
+
+#editor {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(560px, calc(100% - 32px));
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: rgba(18, 18, 22, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f2f2f5;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+#editor .title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+#editor .hint  { font-size: 13px; line-height: 1.45; color: #b9b9c3; margin-bottom: 12px; }
+
+#editor .buttons { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+#editor button {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: #f2f2f5;
+    cursor: pointer;
+}
+
+#editor button:hover { background: rgba(255, 255, 255, 0.12); }
+#editor button.primary { background: #ef6a9b; border-color: #ef6a9b; color: #fff; }
+#editor button.primary:hover { background: #f27ea8; }
+
+#values {
+    margin-top: 12px;
+    width: 100%;
+    height: 54px;
+    resize: none;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(0, 0, 0, 0.35);
+    color: #f2f2f5;
+    user-select: text;
+}

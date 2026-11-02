@@ -174,25 +174,21 @@ const turnSvg = turnEl.querySelector('svg');
 const ICON = {
     straight: ['M12 21V10', 'M6.5 11 12 3.5l5.5 7.5z'],
     turn: ['M7.5 21v-7a5 5 0 0 1 5-5H15', 'M14.5 3.5 21.5 9l-7 5.5z'],
-    keep: ['M9 21v-6l5.5-5.5', 'M19.5 4.5 18 13.5l-7.5-7.5z'],
+    sharp: ['M8 21V8l8 8', 'M20.5 20.5 11.5 19l7.5-7.5z'],
     uturn: ['M7.5 21.5V7.5a4.5 4.5 0 0 1 9 0V14', 'M11.5 13.5h10L16.5 21z'],
-    merge: ['M12 21V10M5 21c0-5 2.5-7.5 7-9.5', 'M6.5 11 12 3.5l5.5 7.5z'],
-    exit: ['M9 21v-6l5.5-5.5', 'M19.5 4.5 18 13.5l-7.5-7.5z'],
     flag: ['M6.5 21V4', 'M6.5 4h11l-2.5 4 2.5 4h-11z'],
 };
 
-// Instruction kinds sent by client.lua. mirror = flip the (right-hand) icon to the left.
+// Instruction kinds sent by client.lua (GTA's satnav codes). mirror = flip the (right-hand) icon.
 const TURNS = {
-    arrived: { title: 'Arrived', icon: 'flag' },
-    uturn: { title: 'Make a U-Turn', icon: 'uturn' },
-    follow: { title: 'Follow Route', icon: 'straight' },
     left: { title: 'Turn Left', icon: 'turn', mirror: true },
     right: { title: 'Turn Right', icon: 'turn' },
+    sharpleft: { title: 'Sharp Left', icon: 'sharp', mirror: true },
+    sharpright: { title: 'Sharp Right', icon: 'sharp' },
     straight: { title: 'Continue Straight', icon: 'straight' },
-    keepleft: { title: 'Keep Left', icon: 'keep', mirror: true },
-    keepright: { title: 'Keep Right', icon: 'keep' },
-    merge: { title: 'Merge onto Freeway', icon: 'merge' },
-    exit: { title: 'Take the Exit', icon: 'exit' },
+    follow: { title: 'Follow the Route', icon: 'straight' },
+    recalc: { title: 'Recalculating', icon: 'uturn' },
+    arrived: { title: 'Arrived', icon: 'flag' },
 };
 
 function formatShort(m) {
@@ -212,14 +208,14 @@ function updateNav(d) {
     }
 
     const t = d.turn;
-    if (!t || !t.kind) {
+    const info = t && TURNS[t.kind];
+    if (!info) {
         turnEl.classList.add('hidden');
         return;
     }
-    const info = TURNS[t.kind] || TURNS.follow;
     turnTitle.textContent = info.title;
-    const dist = t.dist > 0 ? t.dist : d.distance;
-    turnDist.textContent = typeof dist === 'number' ? formatShort(dist) : '';
+    // only turns carry a distance (GTA's is to the next junction, which only fits a turn)
+    turnDist.textContent = typeof t.dist === 'number' ? formatShort(t.dist) : '';
 
     const key = `${info.icon}:${!!info.mirror}`;
     if (key !== turnKey) {

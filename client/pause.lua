@@ -131,6 +131,7 @@ local function openMenu()
         type = 'pause',
         action = 'open',
         title = P.Title or '',
+        heading = P.Heading or '',
         buttons = BUTTONS,
         info = info(true),
     })

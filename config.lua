@@ -146,6 +146,7 @@ Config.Notify = {
 -- Pause menu
 Config.PauseMenu = {
     Enabled = true,
+    Heading = 'Pause Menu',  -- tab in the top-left corner ('' = none)
     Title = 'Los Santos',
     Blur = true,
     Sounds = true,

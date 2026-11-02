@@ -53,7 +53,11 @@ local function buildStations()
     sendStations()
 end
 
+-- After SetVehRadioStation(veh, 'OFF') GTA still reports the last station's name, so check the
+-- radio itself is on; otherwise a muted radio reads as playing and unmuting skips re-tuning it.
 local function playingStation()
+    local veh = GetVehiclePedIsIn(PlayerPedId(), false)
+    if veh == 0 or not IsVehicleRadioOn(veh) or GetPlayerRadioStationIndex() == 255 then return nil end
     local name = GetPlayerRadioStationName()
     if not name or name == '' or name == 'OFF' then return nil end
     return name

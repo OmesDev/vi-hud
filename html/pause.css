@@ -46,6 +46,31 @@
     animation: pm-fade 0.3s ease;
 }
 
+/* ------------------------------------------------------------------ top-left: heading
+   The weapon wheel's selected tab (white, black text, slanted right edge), level with the
+   middle of the player card on the other side. */
+
+#pause .pm-heading {
+    position: absolute;
+    left: var(--pad-x);
+    top: calc(4.4 * var(--u) + 2.6 * var(--u) - 1.15 * var(--u)); /* card top + half the 5.2u avatar - half ours */
+    display: flex;
+    align-items: center;
+    height: calc(2.3 * var(--u));
+    padding: 0 calc(1 * var(--u)) 0 calc(0.8 * var(--u));
+    background: #fff;
+    color: #000;
+    font-size: calc(1.75 * var(--u));
+    line-height: 1;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 0.28 * var(--u)) 100%, 0 100%);
+    box-shadow: var(--shadow);
+    animation: pm-down 0.36s var(--ease) backwards;
+}
+
+#pause .pm-heading[hidden] { display: none; }
+
+#pause .pm-heading span { transform: translateY(-0.03em); }
+
 /* ------------------------------------------------------------------ top-right: player */
 
 #pause .pm-player {

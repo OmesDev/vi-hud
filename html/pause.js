@@ -12,6 +12,7 @@
     const root = document.getElementById('pause');
     const $ = (s) => root.querySelector(s);
     const titleEl = $('.pm-title');
+    const headingEl = $('.pm-heading');
     const nameEl = $('.pm-name');
     const metaEl = $('.pm-meta');
     const bankEl = $('.pm-bank');
@@ -209,6 +210,8 @@
         if (d.action === 'open') {
             buttons = asArray(d.buttons);
             titleEl.textContent = d.title || '';
+            headingEl.firstElementChild.textContent = d.heading || '';
+            headingEl.hidden = !d.heading;
             renderInfo(d.info);
             avatarEl.classList.remove('pm-hasimg');
             imgEl.removeAttribute('src');

@@ -407,60 +407,91 @@ local function streetName(pos)
     return name ~= '' and name or nil
 end
 
--- Next GPS instruction towards the waypoint, from GENERATE_DIRECTIONS_TO_COORD:
---   0 = noise (shows up randomly mid-drive), 1 = route being calculated / going the wrong way,
---   2 = follow the route, 3 = turn left, 4 = turn right, 5 = go straight, 6 = keep left,
---   7 = keep right, 8 = join the freeway, 9 = exit the freeway.
--- dist = metres to that junction.
-local TURN_KINDS = {
-    [1] = 'uturn', [2] = 'follow', [3] = 'left', [4] = 'right', [5] = 'straight',
-    [6] = 'keepleft', [7] = 'keepright', [8] = 'merge', [9] = 'exit',
+-- Turn-by-turn from GTA's own satnav, GENERATE_DIRECTIONS_TO_COORD, used the way F5 Studio's
+-- GTA VI HUD does (github.com/F5-Studio-FiveM/GTA-VI-HUD-FIVEM):
+--   * aim it at the road node nearest the waypoint, not the waypoint itself (often off-road)
+--   * ask twice a frame apart: the first answer can still be for the previous request
+--   * code 0 shows up at random mid-drive: keep the last instruction
+--   * the distance comes in tenths of a metre, and only means something on a turn; when a turn
+--     reading has none, count down by how far we've driven
+-- Codes: 1 recalculating, 2 follow the route, 3 left, 4 right, 5 straight, 6 sharp left,
+-- 7 sharp right, 8 recalculating.
+local NAV_KINDS = {
+    [1] = 'recalc', [2] = 'follow', [3] = 'left', [4] = 'right', [5] = 'straight',
+    [6] = 'sharpleft', [7] = 'sharpright', [8] = 'recalc',
 }
-local ARRIVED_DIST = 30.0 -- metres of route left that count as arrived
-local UTURN_POLLS = 3     -- code 1 also flickers while GTA recalculates; only trust it if it sticks
+local NAV_TURNS = { left = true, right = true, sharpleft = true, sharpright = true }
+local ARRIVED_DIST = 25.0   -- metres from the waypoint's road node that count as arrived
+local ANNOUNCE_DIST = 250.0 -- a turn is shown from this close; further out it's 'continue
+local ANNOUNCE_TIME = 12.0  -- straight' for that distance (or this many seconds ahead at speed)
 
-local lastTurn, uturnPolls = nil, 0
+local navTurn -- what the card shows, nil = nothing
 
-local function resetTurn()
-    lastTurn, uturnPolls = nil, 0
+local function flat(a, b) return #(vector2(a.x, a.y) - vector2(b.x, b.y)) end
+
+local function navTarget()
+    local blip = IsWaypointActive() and GetFirstBlipInfoId(8) or 0
+    if blip == 0 or not DoesBlipExist(blip) then return nil end
+    local wp = GetBlipInfoIdCoord(blip)
+    local found, node = GetClosestVehicleNode(wp.x, wp.y, wp.z, 1, 3.0, 0)
+    return found and node or wp
 end
 
-local function nextTurn(wp, pos, routeDist)
-    if routeDist and routeDist <= ARRIVED_DIST then
-        lastTurn = { kind = 'arrived', dist = routeDist }
-        return lastTurn
+CreateThread(function()
+    local code, dist, prevPos = 0, 0.0, nil
+    while true do
+        Wait(200)
+        local ped = PlayerPedId()
+        local veh = GetVehiclePedIsIn(ped, false)
+        local pos = GetEntityCoords(ped)
+        local target = (Config.Directions and veh ~= 0) and navTarget() or nil
+
+        if not target then
+            code, dist, navTurn = 0, 0.0, nil
+        elseif flat(pos, target) < ARRIVED_DIST then
+            code, dist, navTurn = 0, 0.0, { kind = 'arrived' }
+        else
+            GenerateDirectionsToCoord(target.x, target.y, target.z, true)
+            Wait(0)
+            local _, c, _, junction = GenerateDirectionsToCoord(target.x, target.y, target.z, true)
+            c = math.floor(tonumber(c) or 0)
+            if NAV_KINDS[c] then
+                local metres = (tonumber(junction) or 0) / 10.0
+                if not NAV_TURNS[NAV_KINDS[c]] then
+                    dist = 0.0
+                elseif metres > 0 then
+                    dist = metres
+                elseif c == code and prevPos then
+                    dist = math.max(0.0, dist - flat(pos, prevPos))
+                else
+                    dist = 0.0
+                end
+                code = c
+            end
+
+            local kind = NAV_KINDS[code]
+            if not kind then
+                navTurn = nil
+            elseif NAV_TURNS[kind] and dist > 0 then
+                local announce = math.max(ANNOUNCE_DIST, GetEntitySpeed(veh) * ANNOUNCE_TIME)
+                navTurn = dist > announce and { kind = 'straight', dist = dist } or { kind = kind, dist = dist }
+            else
+                navTurn = { kind = kind }
+            end
+        end
+        prevPos = pos
     end
+end)
 
-    -- The waypoint blip has no height; give GTA the ground there (or our own height if that
-    -- part of the map isn't loaded).
-    local z = wp.z
-    if not z or z == 0.0 then
-        local found, gz = GetGroundZFor_3dCoord(wp.x, wp.y, 1000.0, false)
-        z = found and gz or pos.z
-    end
-
-    local _, code, _, dist = GenerateDirectionsToCoord(wp.x, wp.y, z, true)
-    local kind = TURN_KINDS[math.floor(tonumber(code) or 0)]
-    dist = tonumber(dist) or 0
-
-    if kind == 'uturn' then
-        uturnPolls = uturnPolls + 1
-        if uturnPolls < UTURN_POLLS then kind = nil end
-    else
-        uturnPolls = 0
-    end
-
-    if not kind then
-        -- noise / not settled yet: keep showing the last real instruction
-        return lastTurn or { kind = 'follow', dist = routeDist or 0 }
-    end
-
-    -- No junction distance (follow / U-turn): show how far is left on the route
-    if dist <= 0 or kind == 'follow' then dist = routeDist or 0 end
-
-    lastTurn = { kind = kind, dist = dist }
-    return lastTurn
-end
+-- /vihud_nav: what GTA's satnav says right now (F8 console), for when the card misbehaves
+RegisterCommand('vihud_nav', function()
+    local target = navTarget()
+    if not target then return print('[vi-hud] no waypoint set') end
+    local _, c, _, junction = GenerateDirectionsToCoord(target.x, target.y, target.z, true)
+    print(('[vi-hud] satnav code=%s junction=%s (%.0f m)  route=%s m  card=%s'):format(
+        tostring(c), tostring(junction), (tonumber(junction) or 0) / 10.0,
+        tostring(GetGpsBlipRouteLength()), json.encode(navTurn or 'none')))
+end, false)
 
 local function nightFactor()
     local t = GetClockHours() + GetClockMinutes() / 60.0
@@ -525,7 +556,7 @@ CreateThread(function()
 end)
 
 CreateThread(function()
-    local nextSlow = 0
+    local nextSlow, nextNav = 0, 0
     local distance, night = nil, 0.0
     local street, turn = nil, nil
     local wasVisible = nil
@@ -570,15 +601,15 @@ CreateThread(function()
 
             local waypoint = IsWaypointActive() and GetFirstBlipInfoId(8) or 0
             if waypoint ~= 0 and DoesBlipExist(waypoint) then
-                if slow or not distance then
+                if now >= nextNav or not distance then
+                    nextNav = now + 250
                     local wp = GetBlipInfoIdCoord(waypoint)
                     local routeLen = GetGpsBlipRouteFound() and GetGpsBlipRouteLength() or 0
                     distance = routeLen > 0 and routeLen or #(vector2(wp.x, wp.y) - vector2(pos.x, pos.y))
-                    turn = (Config.Directions and inVehicle) and nextTurn(wp, pos, distance) or nil
                 end
+                turn = navTurn -- worked out by the satnav thread above
             else
                 distance, turn = nil, nil
-                resetTurn()
             end
 
             SendNUIMessage({

@@ -17,6 +17,7 @@ A GTA VI inspired HUD for FiveM. Works with **ESX**, **QBCore**, **Qbox** or **s
 9. [Exports and events](#exports-and-events)
 10. [Customisation](#customisation)
 11. [Troubleshooting](#troubleshooting)
+12. [License](#license)
 
 ---
 
@@ -54,9 +55,11 @@ vi-hud works on its own. Everything below is **optional** and only adds extra fe
 ## What's in the download
 
 ```
-vi-hud/          <- the HUD (required)
-ox_inventory/    <- optional, only install it if you want it
+vi-hud/              <- the HUD (required)
+└── ox_inventory/    <- optional, themed copy of ox_inventory (GPL-3.0, see License)
 ```
+
+The `ox_inventory` folder comes **inside** `vi-hud`. FiveM doesn't load a resource that sits inside another one, so it does nothing there. To use it, move it out into your `resources` folder (see [Installing ox_inventory](#installing-ox_inventory)). If you don't want it, delete it.
 
 ---
 
@@ -134,7 +137,7 @@ ox_inventory is a slot-based inventory made by [Overextended](https://github.com
 
 ### Installing ox_inventory
 
-1. Copy the included `ox_inventory` folder into your `resources` folder.
+1. Move the included `vi-hud/ox_inventory` folder **out of `vi-hud`** and into your `resources` folder, next to `vi-hud`.
 2. In `server.cfg`, make sure it starts after `oxmysql`, `ox_lib` and your framework, and **before** `vi-hud`:
 
    ```cfg
@@ -417,3 +420,18 @@ Put a square PNG in `html/stations/` named after the station, e.g. `RADIO_01_CLA
 | No ITEMS tab in the weapon wheel                     | It needs ox_inventory. Check that ox_inventory is started and `Config.WeaponWheel.Items = true`. |
 | The inventory flashes open when pressing `TAB`       | That player has ox_inventory's own inventory key bound to `TAB`. vi-hud prints a warning in their F8 console. Have them rebind ox_inventory's key (e.g. to `F2`) in **Settings > Key Bindings > FiveM**. |
 | Other scripts' notifications stopped using vi-hud    | You probably updated ox_lib, esx_notify or qb-core. Add the lines from [Replacing other notification scripts](#replacing-other-notification-scripts) again. |
+
+---
+
+## License
+
+### ox_inventory (bundled)
+
+The `ox_inventory` folder is a modified copy of [ox_inventory](https://github.com/overextended/ox_inventory) v2.48.1 by Overextended (Linden, Luke, Dunak and contributors). It's licensed under **GPL-3.0-or-later**, and vi-hud's own terms don't apply to it.
+
+- Full license text: [ox_inventory/LICENSE](ox_inventory/LICENSE)
+- Copyright and attribution: [ox_inventory/NOTICE.md](ox_inventory/NOTICE.md)
+- What was changed (only the vi-hud theme): [ox_inventory/MODIFICATIONS.md](ox_inventory/MODIFICATIONS.md)
+- Original source: https://github.com/overextended/ox_inventory
+
+You're free to use, modify and redistribute it under the GPL-3.0. It's kept unencrypted on purpose (`escrow_ignore` in [fxmanifest.lua](fxmanifest.lua)). Keep it that way if you repackage vi-hud.

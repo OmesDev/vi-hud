@@ -10,6 +10,7 @@ ui_page 'html/index.html'
 
 escrow_ignore {
     'config.lua',
+    'ox_inventory/**', -- bundled ox_inventory is GPL-3.0: it must stay unencrypted (see ox_inventory/NOTICE.md)
 }
 
 shared_script 'config.lua'

@@ -1,0 +1,670 @@
+/* vi-hud theme for ox_inventory: GTA VI style, matching vi-hud's weapon wheel.
+   Loaded after index.css (see ../index.html), so it only restyles / re-lays out ox's own markup:
+     .inventory-wrapper
+       .inventory-grid-wrapper   (left = your pockets)
+       .inventory-control        (amount + use / give / close -> action bar at the bottom)
+       .useful-controls-button
+       .inventory-grid-wrapper   (right = ground / trunk / stash / shop...)
+   An empty slot is an empty div, a filled one holds .item-slot-wrapper.
+   Sizes use --u = 1% of a 16:9 screen width, same as vi-hud. The dark backdrop comes from
+   vi-hud (its page sits under this one), so the WEAPONS / ITEMS header stays crisp. */
+
+:root {
+    --u: min(1vw, 1.7778vh);
+    --tw: calc(6.6 * var(--u));     /* slot */
+    --th: calc(5 * var(--u));
+    --hdr: calc(1.15 * var(--u));   /* hotkey / count row at the top of a slot */
+    --strip: calc(1.15 * var(--u)); /* name strip at the bottom of a slot */
+    --gap: calc(0.3 * var(--u));
+    --qgap: calc(1 * var(--u));     /* space under the quick slot row */
+    --icon: calc(2.5 * var(--u));
+    --teal: 34, 224, 194;
+    --red: 224, 52, 79;
+    --empty: rgba(108, 108, 102, 0.16);
+    --panel: rgba(18, 18, 22, 0.97);
+    --dark: rgba(22, 22, 26, 0.86);
+    --strip-bg: rgba(34, 35, 42, 0.94);
+    --text-dim: #c6c6c9;
+    --display: 'Barlow Condensed', 'Oswald', 'Arial Narrow', sans-serif;
+    --body: 'Inter', 'Segoe UI', Arial, sans-serif;
+    --shadow: 0 0 calc(0.12 * var(--u)) rgba(0, 0, 0, 0.6), 0 calc(0.05 * var(--u)) calc(0.3 * var(--u)) rgba(0, 0, 0, 0.45);
+    --slant: polygon(0 0, 100% 0, calc(100% - 0.22 * var(--u)) 100%, 0 100%);
+    /* the wheel's light weapon card, normal and highlighted */
+    --card:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0) 28%, rgba(0, 0, 0, 0) 72%, rgba(0, 0, 0, 0.1)),
+        linear-gradient(180deg, rgba(125, 123, 117, 0.92) 0%, rgba(123, 121, 115, 0.92) 17%, rgba(112, 110, 104, 0.92) 43%, rgba(88, 89, 83, 0.92) 70%, rgba(82, 83, 77, 0.92) 100%);
+    --card-sel:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0) 28%, rgba(0, 0, 0, 0) 72%, rgba(0, 0, 0, 0.1)),
+        linear-gradient(180deg, rgba(142, 145, 136, 0.95) 0%, rgba(152, 155, 146, 0.95) 21%, rgba(158, 161, 152, 0.95) 39%, rgba(149, 151, 144, 0.95) 53%, rgba(122, 125, 119, 0.95) 67%, rgba(106, 108, 102, 0.95) 81%, rgba(101, 103, 97, 0.95) 100%);
+}
+
+body { font-family: var(--body); }
+
+/* no browser focus rings (the theme draws its own highlights) */
+:focus,
+:focus-visible { outline: none; }
+p { font-family: inherit; }
+button:active { transform: none; }
+
+/* ================================================================== layout */
+
+.inventory-wrapper {
+    position: relative;
+    gap: calc(4 * var(--u));
+    align-items: flex-start;
+    padding-top: calc(10.5 * var(--u)); /* under the WEAPONS / ITEMS tabs */
+    box-sizing: border-box;
+}
+
+@keyframes vi-in-left  { from { opacity: 0; transform: translateX(calc(-1.5 * var(--u))); } }
+@keyframes vi-in-right { from { opacity: 0; transform: translateX(calc(1.5 * var(--u))); } }
+@keyframes vi-in-up    { from { opacity: 0; transform: translate(-50%, calc(0.8 * var(--u))); } }
+
+.inventory-wrapper > .inventory-grid-wrapper:first-child { animation: vi-in-left 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.inventory-wrapper > .inventory-grid-wrapper:last-child  { animation: vi-in-right 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* ================================================================== panel header
+   NAME            (white, like the wheel's weapon name)
+   POCKETS         (grey, like the wheel's category)            5.2/24KG
+   ▮▮▮▮▮▮▮▮▮▯▯▯▯▯▯▯▯▯▯▯ segmented weight meter */
+
+.inventory-grid-wrapper { gap: calc(0.7 * var(--u)); }
+
+.inventory-grid-wrapper > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: calc(0.5 * var(--u));
+}
+
+/* same height on both sides (one-line titles too): title top-left, weight bottom-right */
+.inventory-grid-header-wrapper {
+    align-items: flex-start;
+    min-height: calc(3.4 * var(--u));
+}
+
+.inventory-grid-header-wrapper p:not(:first-child) { align-self: flex-end; }
+
+.inventory-grid-header-wrapper p {
+    font-family: var(--display);
+    text-transform: uppercase;
+    line-height: 1;
+    text-shadow: var(--shadow);
+}
+
+.inventory-grid-header-wrapper p:first-child {
+    font-size: calc(1.9 * var(--u));
+    font-weight: 800;
+    color: #fff;
+}
+
+.inventory-grid-header-wrapper p:first-child::after {
+    display: block;
+    margin-top: calc(0.3 * var(--u));
+    font-size: calc(1.15 * var(--u));
+    font-weight: 600;
+    color: var(--text-dim);
+}
+
+.inventory-wrapper > .inventory-grid-wrapper:first-child .inventory-grid-header-wrapper p:first-child::after { content: 'Pockets'; }
+.inventory-wrapper > .inventory-grid-wrapper:last-child .inventory-grid-header-wrapper p:first-child:empty::after { content: 'Ground'; margin-top: 0; font-size: calc(1.9 * var(--u)); font-weight: 800; color: #fff; }
+
+/* weight */
+.inventory-grid-header-wrapper p:not(:first-child) {
+    font-size: calc(1.15 * var(--u));
+    font-weight: 600;
+    color: var(--text-dim);
+}
+
+.weight-bar {
+    height: calc(0.32 * var(--u));
+    border: none;
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.14);
+    /* 25 segments */
+    -webkit-mask-image: repeating-linear-gradient(90deg, #000 0, #000 calc(4% - 0.18 * var(--u)), transparent calc(4% - 0.18 * var(--u)), transparent 4%);
+    mask-image: repeating-linear-gradient(90deg, #000 0, #000 calc(4% - 0.18 * var(--u)), transparent calc(4% - 0.18 * var(--u)), transparent 4%);
+}
+
+.weight-bar > div { background-color: rgb(var(--teal)) !important; }
+
+/* ================================================================== grids */
+
+.inventory-grid-container {
+    grid-template-columns: repeat(5, var(--tw));
+    grid-auto-rows: var(--th);
+    gap: var(--gap);
+    height: calc(6 * var(--th) + 5 * var(--gap));
+    /* room for the highlight outline; no wider than the gap, or the next row peeks in */
+    padding: var(--gap);
+    margin: calc(-1 * var(--gap));
+}
+
+/* Pockets: slots 1-5 (the hotkeys) are their own row, set apart from the rest */
+.inventory-wrapper > .inventory-grid-wrapper:first-child .inventory-grid-container {
+    height: calc(6 * var(--th) + 5 * var(--gap) + var(--qgap));
+}
+
+.inventory-wrapper > .inventory-grid-wrapper:first-child .inventory-slot:nth-child(n+6) {
+    transform: translateY(var(--qgap));
+}
+
+/* the other side has no split row; its slots are a hair taller instead, so both panels end
+   on the same line */
+.inventory-wrapper > .inventory-grid-wrapper:last-child { --th: calc(5 * var(--u) + var(--qgap) / 6); }
+
+/* ================================================================== slots */
+
+/* Empty slot = the wheel's empty tile. ox paints the item picture on the slot itself; that copy
+   is hidden and redrawn on .item-slot-wrapper, so it sits on top of the card drawn behind it. */
+.inventory-slot,
+.hotbar-item-slot {
+    position: relative;
+    z-index: 0; /* own layer, so the card (z-index -1) stays inside the slot */
+    color: #fff;
+    background-color: var(--empty);
+    background-size: 0 0;
+    border: none;
+    border-radius: 0;
+}
+
+.inventory-slot:hover { z-index: 1; } /* outline over the neighbours */
+.inventory-slot:empty:hover { background-color: rgba(108, 108, 102, 0.26); }
+
+/* empty quick slots still show their key */
+.inventory-wrapper > .inventory-grid-wrapper:first-child .inventory-slot:nth-child(-n+5) { background-color: rgba(108, 108, 102, 0.24); }
+
+.inventory-wrapper > .inventory-grid-wrapper:first-child .inventory-slot:nth-child(-n+5):empty::before {
+    position: absolute;
+    top: calc(0.22 * var(--u));
+    left: calc(0.22 * var(--u));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: calc(0.92 * var(--u));
+    height: calc(0.92 * var(--u));
+    box-sizing: border-box;
+    border: calc(0.08 * var(--u)) solid rgba(255, 255, 255, 0.35);
+    border-radius: calc(0.16 * var(--u));
+    color: rgba(255, 255, 255, 0.55);
+    font-family: var(--display);
+    font-size: calc(0.72 * var(--u));
+    font-weight: 700;
+    line-height: 1;
+}
+
+.inventory-wrapper > .inventory-grid-wrapper:first-child .inventory-slot:nth-child(1):empty::before { content: '1'; }
+.inventory-wrapper > .inventory-grid-wrapper:first-child .inventory-slot:nth-child(2):empty::before { content: '2'; }
+.inventory-wrapper > .inventory-grid-wrapper:first-child .inventory-slot:nth-child(3):empty::before { content: '3'; }
+.inventory-wrapper > .inventory-grid-wrapper:first-child .inventory-slot:nth-child(4):empty::before { content: '4'; }
+.inventory-wrapper > .inventory-grid-wrapper:first-child .inventory-slot:nth-child(5):empty::before { content: '5'; }
+
+.inventory-slot .item-slot-wrapper,
+.hotbar-item-slot .item-slot-wrapper {
+    background-image: inherit;
+    background-repeat: no-repeat;
+    background-size: auto var(--icon);
+    /* centred between the top row and the name strip */
+    background-position: 50% calc(var(--hdr) + (var(--th) - var(--hdr) - var(--strip) - var(--icon)) / 2);
+    outline: 0 solid #fff;
+    transition: box-shadow 0.08s ease, outline-width 0.08s ease;
+}
+
+/* the card, above the name strip */
+.inventory-slot .item-slot-wrapper::before,
+.hotbar-item-slot .item-slot-wrapper::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: var(--strip);
+    z-index: -1;
+    background: var(--card);
+}
+
+/* Highlighted item: lighter card, white outline + dark halo, like the wheel */
+.inventory-slot:hover .item-slot-wrapper {
+    outline-width: calc(0.16 * var(--u));
+    box-shadow: 0 0 0 calc(0.24 * var(--u)) rgba(0, 0, 0, 0.8);
+}
+
+.inventory-slot:hover .item-slot-wrapper::before { background: var(--card-sel); }
+
+.item-slot-wrapper p { font-size: inherit; }
+
+/* top row: hotkey on the left, count on the right */
+.item-slot-header-wrapper,
+.item-hotslot-header-wrapper,
+.hotbar-slot-header-wrapper {
+    align-items: flex-start;
+    height: var(--hdr);
+}
+
+.inventory-slot-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: calc(0.92 * var(--u));
+    height: calc(0.92 * var(--u));
+    margin: calc(0.22 * var(--u));
+    padding: 0 calc(0.15 * var(--u));
+    box-sizing: border-box;
+    border-radius: calc(0.16 * var(--u));
+    background: #fff;
+    color: #000;
+    font-family: var(--display);
+    font-size: calc(0.72 * var(--u));
+    font-weight: 700;
+    line-height: 1;
+}
+
+.item-slot-info-wrapper {
+    align-items: center;
+    padding: calc(0.22 * var(--u));
+    font-family: var(--display);
+    line-height: 1;
+}
+
+/* per-item weight: the total is in the header, keep the tiles clean */
+.item-slot-info-wrapper p:first-child { display: none; }
+
+/* count: small dark tag, same as the name strip */
+.item-slot-info-wrapper p:last-child:not(:empty) {
+    display: flex;
+    align-items: center;
+    height: calc(0.92 * var(--u));
+    padding: 0 calc(0.25 * var(--u));
+    background: var(--strip-bg);
+    color: #fff;
+    font-size: calc(0.8 * var(--u));
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+/* name strip, like the wheel's ammo strip */
+.inventory-slot-label-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--strip);
+    border: none;
+    border-radius: 0;
+    background: var(--strip-bg);
+    color: #fff;
+}
+
+.inventory-slot:hover .inventory-slot-label-box {
+    background: linear-gradient(180deg, rgba(49, 49, 56, 0.97), rgba(45, 45, 52, 0.97));
+}
+
+.inventory-slot-label-text {
+    padding: 0 calc(0.35 * var(--u));
+    font-family: var(--display);
+    font-size: calc(0.9 * var(--u));
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    transform: translateY(-0.04em);
+}
+
+.durability-bar {
+    height: calc(0.16 * var(--u));
+    background: rgba(0, 0, 0, 0.45);
+}
+
+/* shop prices / currency */
+.item-slot-price-wrapper,
+.item-slot-currency-wrapper { padding-right: calc(0.3 * var(--u)); }
+
+.item-slot-price-wrapper p,
+.item-slot-currency-wrapper p {
+    font-family: var(--display);
+    font-size: calc(0.95 * var(--u));
+    font-weight: 700;
+    text-shadow: var(--shadow);
+}
+
+.item-drag-preview {
+    width: var(--tw);
+    height: var(--th);
+    background-size: auto var(--icon);
+    filter: drop-shadow(0 calc(0.1 * var(--u)) calc(0.25 * var(--u)) rgba(0, 0, 0, 0.6));
+}
+
+/* ================================================================== action bar
+   [ amount ][ USE ][ GIVE ][ CLOSE ]  bottom centre, slanted like the wheel's tabs
+   (items can still be dragged onto USE / GIVE) */
+
+.inventory-control {
+    position: absolute;
+    left: 50%;
+    bottom: calc(3.4 * var(--u));
+    transform: translateX(-50%);
+    animation: vi-in-up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.inventory-control .inventory-control-wrapper {
+    flex-direction: row;
+    align-items: stretch;
+    gap: calc(0.35 * var(--u));
+}
+
+.inventory-control .inventory-control-input,
+.inventory-control .inventory-control-button {
+    height: calc(2 * var(--u));
+    box-sizing: border-box;
+    border: none;
+    border-radius: 0;
+    background: var(--dark);
+    color: #fff;
+    font-family: var(--display);
+    font-weight: 700;
+    line-height: 1;
+    clip-path: var(--slant);
+}
+
+.inventory-control .inventory-control-input {
+    width: calc(6 * var(--u));
+    padding: 0 calc(0.4 * var(--u));
+    font-size: calc(1.3 * var(--u));
+    box-shadow: inset 0 calc(-0.14 * var(--u)) 0 rgba(255, 255, 255, 0.25);
+    transition: box-shadow 0.1s ease;
+}
+
+.inventory-control .inventory-control-input:focus-within {
+    background: rgba(12, 12, 16, 0.92);
+    box-shadow: inset 0 calc(-0.14 * var(--u)) 0 rgb(var(--teal));
+}
+
+.inventory-control .inventory-control-button {
+    width: calc(6.2 * var(--u));
+    padding: 0;
+    font-size: calc(1.25 * var(--u));
+    transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.inventory-control .inventory-control-button:hover {
+    background: #fff;
+    color: #000;
+    cursor: pointer;
+}
+
+/* ================================================================== tooltip / menus */
+
+/* Tooltip / context menu (portaled to the end of body) above the slots, since a highlighted
+   slot is lifted to z-index 1; the menu comes later, so it stays above the tooltip */
+[data-floating-ui-portal] > div { z-index: 100; }
+
+.tooltip-wrapper,
+.context-menu-list,
+.useful-controls-dialog {
+    background: var(--panel);
+    border: none;
+    border-top: calc(0.14 * var(--u)) solid #fff;
+    border-radius: 0;
+    color: var(--text-dim);
+    box-shadow: 0 calc(0.2 * var(--u)) calc(1 * var(--u)) rgba(0, 0, 0, 0.5);
+}
+
+.tooltip-wrapper {
+    width: calc(13 * var(--u));
+    min-width: calc(13 * var(--u));
+    padding: calc(0.6 * var(--u)) calc(0.75 * var(--u)) calc(0.7 * var(--u));
+    font-family: var(--body);
+}
+
+.tooltip-wrapper p {
+    font-size: calc(0.68 * var(--u));
+    line-height: 1.45;
+}
+
+.tooltip-header-wrapper { align-items: baseline; gap: calc(0.5 * var(--u)); }
+
+.tooltip-header-wrapper p {
+    font-family: var(--display);
+    font-size: calc(0.95 * var(--u));
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.tooltip-header-wrapper p:first-child {
+    font-size: calc(1.4 * var(--u));
+    font-weight: 800;
+    color: #fff;
+}
+
+.tooltip-description { padding-top: calc(0.35 * var(--u)); }
+
+.divider {
+    margin: calc(0.4 * var(--u)) 0;
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.tooltip-crafting-duration p,
+.tooltip-ingredient p { font-family: var(--display); font-weight: 600; }
+
+.context-menu-list {
+    min-width: calc(10 * var(--u));
+    padding: calc(0.25 * var(--u));
+}
+
+.context-menu-item {
+    padding: calc(0.4 * var(--u)) calc(0.55 * var(--u));
+    border-radius: 0;
+    color: #fff;
+    font-family: var(--display);
+    font-size: calc(1 * var(--u));
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    transition: background-color 0.08s ease, color 0.08s ease;
+}
+
+.context-menu-item:hover {
+    background: #fff;
+    color: #000;
+}
+
+.context-menu-item:hover svg { fill: #000; }
+
+/* "?" help button (bottom right) and its dialog */
+.useful-controls-button {
+    width: calc(2 * var(--u));
+    height: calc(2 * var(--u));
+    bottom: calc(3.4 * var(--u));
+    right: calc(3.4 * var(--u));
+    background-color: var(--dark) !important;
+    border-radius: 0 !important;
+    clip-path: var(--slant);
+}
+
+.useful-controls-button:hover { background-color: #fff !important; fill: #000; color: #000; }
+
+.useful-controls-dialog {
+    width: calc(26 * var(--u));
+    padding: calc(1 * var(--u));
+}
+
+.useful-controls-dialog-title {
+    font-family: var(--display);
+    font-size: calc(1.5 * var(--u));
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #fff;
+}
+
+.useful-controls-dialog-close { border-radius: 0; }
+.useful-controls-dialog-close:hover { background: #fff; fill: #000; }
+
+/* ================================================================== hotbar */
+
+.hotbar-container {
+    gap: var(--gap);
+    bottom: calc(2.2 * var(--u));
+}
+
+.hotbar-item-slot {
+    width: var(--tw);
+    height: var(--th);
+}
+
+/* ================================================================== item notifications
+   Small weapon-wheel tiles, side by side at the bottom centre:
+
+     [ EQUIPPED ]╲          slanted tab, like the wheel's WEAPONS / ITEMS tabs
+     ┌──────────┐           (white = newest, dark = older ones still showing)
+     │   icon   │           the wheel's light card, teal glow under the item
+     ├──────────┤
+     │ FIRE EXT │           dark name strip, like the wheel's ammo strip
+     └──────────┘
+
+   ox markup, portaled straight into <body> (after #root):
+     .item-notification-container > span > .item-notification-item-box   (icon = inline bg)
+       .item-slot-wrapper > .item-notification-action-box p  +  .inventory-slot-label-box
+   Sizes are the wheel's tile x 0.8. */
+
+.item-notification-container {
+    --nw: calc(7.85 * var(--u));    /* tile width */
+    --ntab: calc(1.31 * var(--u));  /* tab height */
+    --ntg: calc(0.3 * var(--u));    /* tab -> tile */
+    --nart: calc(3.59 * var(--u));  /* card */
+    --nstrip: calc(1.44 * var(--u));
+    --nicon: calc(2.3 * var(--u));
+    width: max-content;
+    margin-left: 0;
+    justify-content: center;
+    align-items: flex-end;
+    gap: calc(0.45 * var(--u));
+    bottom: 5vh; /* GTA's safe zone: the minimap / speedometer line */
+    overflow: visible;
+    pointer-events: none;
+    transition: bottom 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* the hotbar (1-5) is up: sit just above it */
+body:has(.hotbar-container) > .item-notification-container {
+    bottom: calc(2.2 * var(--u) + var(--th) + 1 * var(--u));
+}
+
+.item-notification-container > span { display: block; }
+
+/* a burst (crafting, a big pickup) shows the newest four */
+.item-notification-container > span:nth-last-child(n+5) { display: none; }
+
+/* Leaving: a lone tile drops and fades. With more showing, ox keys tiles by index, so the
+   element it removes holds a copy of the newest tile; that copy goes at once. */
+.item-notification-container > span.transition-fade-exit-active {
+    transform: translateY(calc(0.6 * var(--u)));
+    transition: opacity 0.18s ease, transform 0.18s ease-in;
+}
+
+.item-notification-container > span.transition-fade-exit:not(:only-child) { display: none; }
+
+@keyframes vi-nt-in  { from { opacity: 0; transform: translateY(calc(0.8 * var(--u))); } }
+@keyframes vi-nt-tab { from { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); } }
+
+.item-notification-item-box {
+    position: relative;
+    z-index: 0; /* own layer, so the card (z-index -1) stays inside the tile */
+    width: var(--nw);
+    height: calc(var(--ntab) + var(--ntg) + var(--nart) + var(--nstrip));
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+    background-size: 0 0; /* the icon is redrawn on the wrapper, over the card */
+    color: #fff;
+    font-family: var(--display);
+    text-transform: uppercase;
+    /* no dimmed backdrop out in the world, so a soft shadow keeps it off bright ground / sky */
+    filter: drop-shadow(0 calc(0.08 * var(--u)) calc(0.35 * var(--u)) rgba(0, 0, 0, 0.45));
+    animation: vi-nt-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.item-notification-item-box .item-slot-wrapper {
+    justify-content: space-between;
+    background-image: inherit;
+    background-repeat: no-repeat;
+    background-size: auto var(--nicon);
+    background-position: 50% calc(var(--ntab) + var(--ntg) + (var(--nart) - var(--nicon)) / 2);
+}
+
+/* the card + the wheel's "in hand" teal glow along its bottom */
+.item-notification-item-box .item-slot-wrapper::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--ntab) + var(--ntg));
+    bottom: var(--nstrip);
+    z-index: -1;
+    background:
+        radial-gradient(
+            ellipse calc(var(--nw) * 0.62) calc(1.22 * var(--u)) at 50% calc(100% - 0.24 * var(--u)),
+            rgba(var(--teal), 0.9) 0%,
+            rgba(var(--teal), 0.75) 25%,
+            rgba(var(--teal), 0.5) 46%,
+            rgba(var(--teal), 0.25) 62%,
+            rgba(var(--teal), 0.1) 77%,
+            rgba(var(--teal), 0.03) 92%,
+            rgba(var(--teal), 0) 100%),
+        var(--card);
+}
+
+/* "EQUIPPED" / "ADDED 2x": the wheel's tab */
+.item-notification-item-box .item-notification-action-box {
+    display: flex;
+    align-items: center;
+    align-self: flex-start;
+    width: auto;
+    height: var(--ntab);
+    padding: 0 calc(0.6 * var(--u)) 0 calc(0.45 * var(--u));
+    border-radius: 0;
+    background: #fff;
+    color: #000;
+    font-family: inherit;
+    text-align: left;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 0.2 * var(--u)) 100%, 0 100%);
+    animation: vi-nt-tab 0.28s 0.04s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.item-notification-item-box .item-notification-action-box p {
+    padding: 0;
+    font-size: calc(1.09 * var(--u));
+    font-weight: 700;
+    line-height: 1;
+    transform: translateY(-0.03em);
+}
+
+/* older tiles still on screen: the wheel's unselected tab */
+.item-notification-container > span:has(~ span:not(.transition-fade-exit)) .item-notification-action-box {
+    background: rgba(26, 26, 30, 0.86);
+    color: #fff;
+}
+
+/* item name: the wheel's ammo strip */
+.item-notification-item-box .inventory-slot-label-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    height: var(--nstrip);
+    border: none;
+    border-radius: 0;
+    background: var(--strip-bg);
+    color: #fff;
+}
+
+.item-notification-item-box .inventory-slot-label-text {
+    max-width: 100%; /* long names end in "..." instead of spilling out */
+    box-sizing: border-box;
+    padding: 0 calc(0.4 * var(--u));
+    font-family: inherit;
+    font-size: calc(0.95 * var(--u));
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    text-transform: uppercase;
+    transform: translateY(-0.04em);
+}

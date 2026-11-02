@@ -20,6 +20,7 @@
     const avatarEl = $('.pm-avatar');
     const imgEl = $('.pm-avatar img');
     const railEl = $('.pm-rail');
+    const linksEl = $('.pm-links');
     const trackEl = $('.pm-track');
     const thumbEl = $('.pm-track i');
 
@@ -39,6 +40,10 @@
     let buttons = [];
     let tiles = [];
     let sel = 0;
+    let links = [];   // Config.PauseMenu.Buttons: small buttons in the bottom-right corner
+    let linkEls = [];
+    let lsel = 0;
+    let row = 'rail'; // which row has the selection: 'rail' (main tiles) or 'links'
     let isOpen = false;
     let confirming = false;
     let confirmTimer = 0;
@@ -63,6 +68,25 @@
             railEl.appendChild(el);
             return el;
         });
+    }
+
+    function renderLinks() {
+        linksEl.innerHTML = '';
+        linkEls = links.map((b, i) => {
+            const el = document.createElement('div');
+            el.className = 'pm-link';
+            el.style.animationDelay = `${0.08 + i * 0.03}s`;
+            el.innerHTML = `<div class="pm-lico">${iconHtml(b)}</div><span>${esc(b.label)}</span>`;
+            linksEl.appendChild(el);
+            return el;
+        });
+        linksEl.hidden = !links.length;
+    }
+
+    function paint() {
+        tiles.forEach((t, n) => t.classList.toggle('pm-sel', row === 'rail' && n === sel));
+        linkEls.forEach((t, n) => t.classList.toggle('pm-sel', row === 'links' && n === lsel));
+        trackEl.classList.toggle('pm-away', row === 'links');
     }
 
     function placeThumb() {
@@ -90,16 +114,24 @@
         });
     }
 
-    function select(i, withSound) {
-        if (!buttons.length) return;
-        const next = (i + buttons.length) % buttons.length;
-        if (next === sel && tiles[sel] && tiles[sel].classList.contains('pm-sel')) return;
+    // r = 'rail' / 'links', i wraps around within that row
+    function select(r, i, withSound) {
+        const list = r === 'links' ? links : buttons;
+        if (!list.length) return;
+        const next = (i + list.length) % list.length;
+        const el = (r === 'links' ? linkEls : tiles)[next];
+        if (r === row && el && el.classList.contains('pm-sel')) return;
         cancelConfirm();
-        sel = next;
-        tiles.forEach((t, n) => t.classList.toggle('pm-sel', n === sel));
+        row = r;
+        if (r === 'links') lsel = next;
+        else sel = next;
+        paint();
         placeThumb();
         if (withSound) post('pauseSound', { name: 'move' });
     }
+
+    const cur = () => (row === 'links' ? lsel : sel);
+    const step = (d) => select(row, cur() + d, true);
 
     function renderInfo(d) {
         if (!d) return;
@@ -116,9 +148,9 @@
     // ------------------------------------------------------------ actions
 
     function activate() {
-        const b = buttons[sel];
+        const b = row === 'links' ? links[lsel] : buttons[sel];
         if (!b || busy) return;
-        if (b.id === 'leave' && !confirming) {
+        if (row === 'rail' && b.id === 'leave' && !confirming) {
             confirming = true;
             tiles[sel].classList.add('pm-confirm');
             label(sel, 'Confirm');
@@ -129,7 +161,7 @@
         }
         if (b.url && typeof window.invokeNative === 'function') window.invokeNative('openUrl', b.url);
         if (!b.keepOpen) busy = true;
-        nextSel = b.id === 'resume' ? 0 : sel;
+        nextSel = row === 'rail' && b.id !== 'resume' ? sel : 0;
         post('pauseAction', { id: b.id });
     }
 
@@ -149,13 +181,25 @@
 
     railEl.addEventListener('mouseover', (e) => {
         const t = e.target.closest('.pm-tile');
-        if (t && isOpen) select(tiles.indexOf(t), true);
+        if (t && isOpen) select('rail', tiles.indexOf(t), true);
     });
 
     railEl.addEventListener('click', (e) => {
         const t = e.target.closest('.pm-tile');
         if (!t || !isOpen) return;
-        select(tiles.indexOf(t), false);
+        select('rail', tiles.indexOf(t), false);
+        activate();
+    });
+
+    linksEl.addEventListener('mouseover', (e) => {
+        const t = e.target.closest('.pm-link');
+        if (t && isOpen) select('links', linkEls.indexOf(t), true);
+    });
+
+    linksEl.addEventListener('click', (e) => {
+        const t = e.target.closest('.pm-link');
+        if (!t || !isOpen) return;
+        select('links', linkEls.indexOf(t), false);
         activate();
     });
 
@@ -169,20 +213,29 @@
     root.addEventListener('wheel', (e) => {
         if (!isOpen || Date.now() - wheelAt < 90) return;
         wheelAt = Date.now();
-        select(sel + (e.deltaY > 0 || e.deltaX > 0 ? 1 : -1), true);
+        step(e.deltaY > 0 || e.deltaX > 0 ? 1 : -1);
     }, { passive: true });
 
     window.addEventListener('keydown', (e) => {
         if (!isOpen) return;
         switch (e.key) {
-            case 'ArrowLeft': case 'ArrowUp': case 'a': case 'A': case 'q': case 'Q':
-                select(sel - 1, true); break;
-            case 'ArrowRight': case 'ArrowDown': case 'd': case 'D': case 'e': case 'E':
-                select(sel + 1, true); break;
+            case 'ArrowLeft': case 'a': case 'A': case 'q': case 'Q':
+                step(-1); break;
+            case 'ArrowRight': case 'd': case 'D': case 'e': case 'E':
+                step(1); break;
+            // up / down: between the tiles and the link buttons (or along the tiles when there are none)
+            case 'ArrowUp': case 'w': case 'W':
+                if (links.length) select('rail', sel, true);
+                else step(-1);
+                break;
+            case 'ArrowDown': case 's': case 'S':
+                if (links.length) select('links', lsel, true);
+                else step(1);
+                break;
             case 'Tab':
-                select(sel + (e.shiftKey ? -1 : 1), true); break;
-            case 'Home': select(0, true); break;
-            case 'End': select(buttons.length - 1, true); break;
+                step(e.shiftKey ? -1 : 1); break;
+            case 'Home': select(row, 0, true); break;
+            case 'End': select(row, (row === 'links' ? links : buttons).length - 1, true); break;
             case 'Enter': case ' ':
                 if (!e.repeat) activate();
                 break;
@@ -190,7 +243,7 @@
                 if (!e.repeat) back();
                 break;
             default:
-                if (/^[1-9]$/.test(e.key) && +e.key <= buttons.length) select(+e.key - 1, true);
+                if (/^[1-9]$/.test(e.key) && +e.key <= buttons.length) select('rail', +e.key - 1, true);
                 else return;
         }
         e.preventDefault();
@@ -209,6 +262,7 @@
 
         if (d.action === 'open') {
             buttons = asArray(d.buttons);
+            links = asArray(d.links);
             titleEl.textContent = d.title || '';
             headingEl.firstElementChild.textContent = d.heading || '';
             headingEl.hidden = !d.heading;
@@ -219,10 +273,13 @@
             busy = false;
             isOpen = true;
             renderTiles();
+            renderLinks();
             root.classList.remove('pm-hidden');
             sel = Math.min(nextSel, Math.max(0, buttons.length - 1));
             nextSel = 0; // closed some other way (export, resource restart): Resume next time
-            tiles.forEach((t, n) => t.classList.toggle('pm-sel', n === sel));
+            lsel = 0;
+            row = 'rail';
+            paint();
             requestAnimationFrame(placeThumb);
         } else if (d.action === 'info') {
             if (isOpen) renderInfo(d.info);

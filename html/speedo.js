@@ -79,20 +79,31 @@
     const altEl = root.querySelector('.sp-alt');
     const altVal = root.querySelector('.sp-alt-v');
     let minimal = false;
+    // place() reads the layout (forces a reflow), so it only runs when the panel or the window
+    // changed since the last time; the panel is positioned through its inline style (script.js)
+    let placedKey = null;
 
     function place() {
         if (!minimal || !panel) return;
+        const key = `${panel.style.cssText}|${window.innerWidth}x${window.innerHeight}`;
+        if (key === placedKey) return;
+        placedKey = key;
         const r = panel.getBoundingClientRect();
         const gap = parseFloat(getComputedStyle(root).getPropertyValue('--gap')) || 16;
         root.style.left = `${r.right + gap}px`;
         root.style.bottom = `${window.innerHeight - r.bottom}px`;
     }
 
+    // The gear sits in the gap at the bottom of the gauge, or above the speed in the minimal style
+    // (beside the speed it'd jump around as the digits change)
     function setStyle(style) {
         const m = style === 'minimal';
         if (m === minimal) return;
         minimal = m;
+        placedKey = null;
         root.classList.toggle('sp-minimal', m);
+        if (m) root.prepend(gearEl);
+        else root.appendChild(gearEl);
         if (!m) {
             root.style.left = '';
             root.style.bottom = '';

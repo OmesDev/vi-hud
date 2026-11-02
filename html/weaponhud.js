@@ -26,7 +26,21 @@
         let i = 0;
         const img = new Image();
         img.alt = '';
-        img.onload = () => { resolved[name] = list[i]; };
+        // Already trimmed (icons.js): straight in, no swap
+        const trimmed = resolved[name] && IconTrim.get(resolved[name]);
+        if (trimmed) {
+            img.src = trimmed;
+            iconEl.replaceChildren(img);
+            return;
+        }
+        img.onload = () => {
+            if (img.src.startsWith('data:')) return; // the trimmed copy
+            const url = list[i];
+            resolved[name] = url;
+            IconTrim.load(url).then((src) => {
+                if (shown === name && src !== url) img.src = src;
+            });
+        };
         img.onerror = () => {
             if (shown !== name) return;
             i += 1;

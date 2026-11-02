@@ -44,12 +44,14 @@ local BUTTONS = {
     { id = 'keys', label = 'Key Bindings' },
 }
 
+-- Config.PauseMenu.Buttons: small link buttons in the bottom-right corner, not main tiles
+local LINKS = {}
 local EXTRA = {}
 for i, b in ipairs(P.Buttons or {}) do
     if type(b) == 'table' and b.label then
         local id = 'x' .. i
         EXTRA[id] = b
-        BUTTONS[#BUTTONS + 1] = { id = id, label = b.label, fa = b.icon, url = b.url, keepOpen = b.keepOpen == true }
+        LINKS[#LINKS + 1] = { id = id, label = b.label, fa = b.icon, url = b.url, keepOpen = b.keepOpen == true }
     end
 end
 
@@ -133,6 +135,7 @@ local function openMenu()
         title = P.Title or '',
         heading = P.Heading or '',
         buttons = BUTTONS,
+        links = LINKS,
         info = info(true),
     })
     sound('SELECT')
@@ -178,10 +181,9 @@ end
 -- Waypoint distance for the map's card (route length, or straight line while there's no route)
 local function mapInfo()
     local out = {}
-    local wp = IsWaypointActive() and GetFirstBlipInfoId(8) or 0
-    if wp ~= 0 and DoesBlipExist(wp) then
+    local wp, w = HudWaypoint() -- client.lua
+    if wp then
         local c = GetEntityCoords(PlayerPedId())
-        local w = GetBlipInfoIdCoord(wp)
         local len = GetGpsBlipRouteFound() and GetGpsBlipRouteLength() or 0
         if len <= 0 then len = #(vector2(c.x, c.y) - vector2(w.x, w.y)) end
         local d = distance(len)

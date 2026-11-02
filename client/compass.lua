@@ -39,10 +39,10 @@ CreateThread(function()
 
             -- Bearing from the player to the waypoint, -1 = none
             local wp = -1
-            if C.Waypoint ~= false and IsWaypointActive() then
-                local blip = GetFirstBlipInfoId(8)
-                if blip ~= 0 and DoesBlipExist(blip) then
-                    local to, from = GetBlipInfoIdCoord(blip), GetEntityCoords(ped)
+            if C.Waypoint ~= false then
+                local blip, to = HudWaypoint() -- client.lua
+                if blip then
+                    local from = GetEntityCoords(ped)
                     local dx, dy = to.x - from.x, to.y - from.y
                     if dx * dx + dy * dy > 4.0 then
                         wp = round1(math.deg(math.atan(dx, dy)) % 360.0)

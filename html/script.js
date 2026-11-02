@@ -64,6 +64,7 @@ function applyLayout() {
         boundsEl.style.height = `${bounds.h * H}px`;
     }
     if (editing) showValues(false);
+    kick(); // the N marker's spot on the frame edge depends on the layout
 }
 
 window.addEventListener('resize', applyLayout);
@@ -112,20 +113,40 @@ function edgePoint(deg) {
 
 const wrap = (a) => ((a % 360) + 540) % 360 - 180; // -> [-180, 180)
 
-let last = performance.now();
+// Runs while the angles are still easing towards their targets, then stops until the next
+// update / layout change kicks it again (a page that redraws every frame costs the game FPS).
+const ANGLES = Object.keys(cur);
+const SETTLED = 0.01; // degrees
+let raf = 0;
+let last = 0;
 function frameLoop(now) {
-    const dt = Math.min(0.1, (now - last) / 1000);
+    raf = 0;
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 1 / 60;
     last = now;
     const k = 1 - Math.exp(-dt * 18);
-    for (const key of Object.keys(cur)) cur[key] += wrap(target[key] - cur[key]) * k;
+    let moving = false;
+    for (const key of ANGLES) {
+        const diff = wrap(target[key] - cur[key]);
+        if (Math.abs(diff) < SETTLED) {
+            cur[key] += diff; // land exactly on it (same angle, no jump)
+        } else {
+            cur[key] += diff * k;
+            moving = true;
+        }
+    }
 
     const n = edgePoint(cur.north);
     north.style.transform = `translate(${n.x}px, ${n.y}px)`;
 
     arrow.style.transform = `rotate(${cur.arrow}deg)`;
-    requestAnimationFrame(frameLoop);
+    if (moving) raf = requestAnimationFrame(frameLoop);
+    else last = 0;
 }
-requestAnimationFrame(frameLoop);
+
+function kick() {
+    if (!raf) raf = requestAnimationFrame(frameLoop);
+}
+kick();
 
 function formatDistance(m) {
     if (units === 'km') return `${(m / 1000).toFixed(2)} km`;
@@ -147,9 +168,10 @@ function onUpdate(d) {
     const rel = ((d.cam - d.player) * Math.PI) / 180;
     target.arrow = (Math.atan2(Math.sin(rel) * stretch, Math.cos(rel) * tilt) * 180) / Math.PI;
     // The waypoint marker itself is a GTA blip (see client.lua), so GTA positions it.
+    kick();
 
     if (typeof d.distance === 'number') {
-        distanceEl.textContent = formatDistance(d.distance);
+        setText(distanceEl, formatDistance(d.distance));
         distanceEl.classList.remove('hidden');
     } else {
         distanceEl.classList.add('hidden');
@@ -158,8 +180,18 @@ function onUpdate(d) {
     updateNav(d);
 
     const night = Math.max(0, Math.min(1, d.night || 0));
-    tintDay.style.opacity = 1 - night;
-    tintNight.style.opacity = night;
+    if (night !== lastNight) {
+        lastNight = night;
+        tintDay.style.opacity = 1 - night;
+        tintNight.style.opacity = night;
+    }
+}
+
+let lastNight = null;
+
+// Only touch the DOM when the text actually changes
+function setText(el, text) {
+    if (el.textContent !== text) el.textContent = text;
 }
 
 // ------------------------------------------------- street bar + turn card
@@ -213,9 +245,9 @@ function updateNav(d) {
         turnEl.classList.add('hidden');
         return;
     }
-    turnTitle.textContent = info.title;
+    setText(turnTitle, info.title);
     // only turns carry a distance (GTA's is to the next junction, which only fits a turn)
-    turnDist.textContent = typeof t.dist === 'number' ? formatShort(t.dist) : '';
+    setText(turnDist, typeof t.dist === 'number' ? formatShort(t.dist) : '');
 
     const key = `${info.icon}:${!!info.mirror}`;
     if (key !== turnKey) {

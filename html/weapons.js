@@ -77,6 +77,13 @@
 
         const img = new Image();
         img.alt = '';
+        // Already trimmed (icons.js): straight in, no swap
+        const trimmed = known && IconTrim.get(known);
+        if (trimmed) {
+            img.src = trimmed;
+            t.art.replaceChildren(img);
+            return;
+        }
         const list = known ? [known] : sources(item.name);
         let i = 0;
         img.onerror = () => {
@@ -88,7 +95,14 @@
                 showAlt(t, item);
             }
         };
-        img.onload = () => { resolved[item.name] = list[i]; };
+        img.onload = () => {
+            if (img.src.startsWith('data:')) return; // the trimmed copy
+            const url = list[i];
+            resolved[item.name] = url;
+            IconTrim.load(url).then((src) => {
+                if (t.shown === item.name && src !== url) img.src = src;
+            });
+        };
         img.src = list[0];
         t.art.replaceChildren(img);
     }

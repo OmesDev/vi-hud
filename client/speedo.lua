@@ -45,9 +45,15 @@ local function engineOf(veh)
     return math.floor(math.max(0.0, math.min(1000.0, GetVehicleEngineHealth(veh))) / 10 + 0.5)
 end
 
+-- Whether the vehicle has a fuel tank at all, read once per vehicle
+local tankVeh, hasTank = 0, false
+
 local function fuelOf(veh)
+    if veh ~= tankVeh then
+        tankVeh, hasTank = veh, GetVehicleHandlingFloat(veh, 'CHandlingData', 'fPetrolTankVolume') > 0.0
+    end
     -- Fuel scripts (LegacyFuel, ox_fuel, cdn-fuel, ps-fuel, ...) keep the level as 0-100 on the vehicle
-    if GetVehicleHandlingFloat(veh, 'CHandlingData', 'fPetrolTankVolume') <= 0.0 then return -1 end
+    if not hasTank then return -1 end
     return math.floor(math.max(0.0, math.min(100.0, GetVehicleFuelLevel(veh))) + 0.5)
 end
 
@@ -78,6 +84,7 @@ CreateThread(function()
 
         if not driving then
             hide()
+            tankVeh = 0 -- handles get reused: check the tank again next time
             Wait(250)
         else
             local units = unitsNow()

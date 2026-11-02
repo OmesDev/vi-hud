@@ -154,5 +154,12 @@ Config.PauseMenu = {
     MapKey = true,
     LeaveButton = true,
     LeaveMessage = 'Left via the pause menu',
-    Buttons = {},             -- { label = 'Rules', icon = 'fa-solid fa-scroll', url = 'https://...' }
+    -- Small link buttons in the bottom-right corner. Each needs one action: url, command, event or serverEvent
+    -- (keepOpen = true keeps the menu up). Icons: any Font Awesome 6 class. {} = none
+    Buttons = {
+        { label = 'Rules',   icon = 'fa-solid fa-scroll',        url = 'https://example.com/rules' },
+        { label = 'Discord', icon = 'fa-brands fa-discord',      url = 'https://discord.gg/example' },
+        { label = 'Website', icon = 'fa-solid fa-globe',         url = 'https://example.com' },
+        { label = 'Store',   icon = 'fa-solid fa-cart-shopping', url = 'https://example.com/store' },
+    },
 }

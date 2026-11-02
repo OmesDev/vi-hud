@@ -10,7 +10,29 @@ Bridge = {}
 
 local FW = string.lower(Config.Framework or 'auto')
 
-local function started(res) return GetResourceState(res) == 'started' end
+-- Resource states, cached (several loops ask every frame); kept current by the start / stop events
+local states = {}
+local stateCbs = {}
+
+local function started(res)
+    local s = states[res]
+    if s == nil then
+        s = GetResourceState(res) == 'started'
+        states[res] = s
+    end
+    return s
+end
+
+local function stateChanged(res, on)
+    states[res] = on
+    for _, cb in ipairs(stateCbs) do cb(res, on) end
+end
+
+AddEventHandler('onClientResourceStart', function(res) stateChanged(res, true) end)
+AddEventHandler('onClientResourceStop', function(res) stateChanged(res, false) end)
+
+Bridge.Started = started
+function Bridge.OnResourceState(cb) stateCbs[#stateCbs + 1] = cb end
 
 -- 'auto' listens to every framework's events (the ones that don't exist simply never fire).
 -- Qbox fires QBCore's events too, so 'qbox' also uses the QBCore hooks.
@@ -140,6 +162,7 @@ if uses('qbcore') then
             toggled = not toggled
         end
         toggledVeh = veh
+        Bridge.ResetSeatbeltCache()
     end)
 end
 
@@ -152,7 +175,7 @@ local function exportBelt()
 end
 
 -- 1 = buckled, 0 = not, -1 = no seatbelt script found (icon hidden)
-function Bridge.GetSeatbelt()
+local function readSeatbelt()
     if manualBelt ~= nil then return manualBelt and 1 or 0 end
 
     local on = exportBelt()
@@ -170,6 +193,21 @@ function Bridge.GetSeatbelt()
     end
 
     return -1
+end
+
+-- The speedometer asks every update; the seatbelt script's export / state bag is only read every
+-- BELT_POLL ms (changes through the SetSeatbelt export / toggle event show straight away)
+local BELT_POLL = 250
+local beltValue, beltAt, beltVeh = -1, -math.huge, 0
+
+function Bridge.ResetSeatbeltCache() beltAt = -math.huge end
+
+function Bridge.GetSeatbelt()
+    local now, veh = GetGameTimer(), currentVeh()
+    if veh ~= beltVeh or now - beltAt >= BELT_POLL then
+        beltValue, beltAt, beltVeh = readSeatbelt(), now, veh
+    end
+    return beltValue
 end
 
 -- ------------------------------------------------------------------ money
@@ -274,15 +312,31 @@ local ICON_SOURCES = {
     { 'qs-inventory',   'nui://qs-inventory/html/images/%s.png' },
 }
 
--- Config value (string or list) wins; otherwise every running inventory above, in order
-function Bridge.WeaponIconUrls(configured)
-    if type(configured) == 'string' and configured ~= '' then return { configured } end
-    if type(configured) == 'table' and #configured > 0 then return configured end
-    local list = {}
+-- Config value (string or list) wins; otherwise every running inventory above, in order.
+-- Built once and rebuilt when one of those inventories starts / stops (the weapon HUD asks every frame).
+local iconAuto, iconSingle = nil, {}
+
+Bridge.OnResourceState(function(res)
     for _, src in ipairs(ICON_SOURCES) do
-        if started(src[1]) then list[#list + 1] = src[2] end
+        if src[1] == res then iconAuto = nil return end
     end
-    return list
+end)
+
+function Bridge.WeaponIconUrls(configured)
+    if type(configured) == 'string' and configured ~= '' then
+        local l = iconSingle[configured]
+        if not l then l = { configured } iconSingle[configured] = l end
+        return l
+    end
+    if type(configured) == 'table' and #configured > 0 then return configured end
+    if not iconAuto then
+        local list = {}
+        for _, src in ipairs(ICON_SOURCES) do
+            if started(src[1]) then list[#list + 1] = src[2] end
+        end
+        iconAuto = list
+    end
+    return iconAuto
 end
 
 -- ------------------------------------------------------------------ exports / events for standalone
@@ -298,6 +352,7 @@ end
 -- exports['vi-hud']:SetSeatbelt(state)   true / false, nil = back to automatic detection
 local function SetSeatbelt(state)
     if state == nil then manualBelt = nil else manualBelt = state and true or false end
+    Bridge.ResetSeatbeltCache()
 end
 
 -- exports['vi-hud']:SetMoney(cash, bank)   number = set, nil = leave as is, false = hide that row

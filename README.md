@@ -375,7 +375,7 @@ Config.PauseMenu.Buttons = {
 }
 ```
 
-Each button needs one action: `url`, `command`, `event` (client) or `serverEvent`. Add `keepOpen = true` to keep the menu open after it's pressed.
+These show as small link buttons in the bottom-right corner, below the main tiles (mouse, or `↑` / `↓` to move between the two rows). Each button needs one action: `url`, `command`, `event` (client) or `serverEvent`. Add `keepOpen = true` to keep the menu open after it's pressed.
 
 ### Weapon icons
 

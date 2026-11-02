@@ -34,6 +34,24 @@ local editing = false
 local nuiReady = false
 local lastScreen = ''
 local maskTex, maskBox
+local updateDirty = true -- resend the next per-frame update even if nothing in it changed
+
+-- The active waypoint: blip, coords (nil, nil = none). Several loops here and in compass.lua /
+-- pause.lua want it; it's looked up at most once per frame however many of them ask.
+local wpFrame, wpBlipId, wpCoords = -1, nil, nil
+function HudWaypoint()
+    local f = GetFrameCount()
+    if f ~= wpFrame then
+        wpFrame = f
+        local blip = IsWaypointActive() and GetFirstBlipInfoId(8) or 0
+        if blip ~= 0 and DoesBlipExist(blip) then
+            wpBlipId, wpCoords = blip, GetBlipInfoIdCoord(blip)
+        else
+            wpBlipId, wpCoords = nil, nil
+        end
+    end
+    return wpBlipId, wpCoords
+end
 
 -- ---------------------------------------------------------------------------
 -- Screen geometry (all rects are 0..1 screen fractions)
@@ -176,6 +194,10 @@ local function maskAlpha(l)
     return at, { x0 = x0, x1 = x1, y0 = y0, y1 = y1 }
 end
 
+-- One texel (all four channels = v) for each alpha value
+local TEXEL = {}
+for v = 0, 255 do TEXEL[v] = string.char(v, v, v, v) end
+
 local function buildMask(l)
     if not maskTex or not l then return end
     local at, box = maskAlpha(l)
@@ -184,15 +206,33 @@ local function buildMask(l)
     -- value, so channel order doesn't matter.
     if SetRuntimeTextureArgbData then
         local rows, zeroRow = {}, string.rep('\0', MASK_W * 4)
-        local char, rep, concat = string.char, string.rep, table.concat
+        local rep, concat = string.rep, table.concat
+        local SOLID = TEXEL[255]
         for ty = 0, MASK_H - 1 do
             if ty < box.y0 or ty > box.y1 then
                 rows[#rows + 1] = zeroRow
             else
+                -- The rounded rect is convex, so on each row the fully opaque texels form one
+                -- unbroken run: work inwards from both ends until each side reaches it, then
+                -- fill the middle in one go.
                 local row = { rep('\0', box.x0 * 4) }
-                for tx = box.x0, box.x1 do
+                local tx, xe, solidAt = box.x0, box.x1, nil
+                while tx <= xe do
                     local v = at(tx, ty)
-                    row[#row + 1] = char(v, v, v, v)
+                    if v == 255 then solidAt = tx break end
+                    row[#row + 1] = TEXEL[v]
+                    tx = tx + 1
+                end
+                if solidAt then
+                    local tail, re = {}, xe
+                    while re > solidAt do
+                        local v = at(re, ty)
+                        if v == 255 then break end
+                        tail[#tail + 1] = TEXEL[v]
+                        re = re - 1
+                    end
+                    row[#row + 1] = rep(SOLID, re - solidAt + 1)
+                    for i = #tail, 1, -1 do row[#row + 1] = tail[i] end
                 end
                 row[#row + 1] = rep('\0', (MASK_W - 1 - box.x1) * 4)
                 rows[#rows + 1] = concat(row)
@@ -238,6 +278,7 @@ local function applyLayout(l)
     l = l or loadLayout()
     buildMask(l)
     if not nuiReady then return end
+    updateDirty = true -- units / tilt / stretch below change how the page shows the update
     SendNUIMessage({
         type = 'layout',
         layout = l,
@@ -429,12 +470,21 @@ local navTurn -- what the card shows, nil = nothing
 
 local function flat(a, b) return #(vector2(a.x, a.y) - vector2(b.x, b.y)) end
 
+-- The road node is kept until the waypoint moves. Not found (e.g. the area isn't loaded yet):
+-- the waypoint itself, and the node is looked for again next time.
+local navWp, navNode
+
 local function navTarget()
-    local blip = IsWaypointActive() and GetFirstBlipInfoId(8) or 0
-    if blip == 0 or not DoesBlipExist(blip) then return nil end
-    local wp = GetBlipInfoIdCoord(blip)
+    local _, wp = HudWaypoint()
+    if not wp then return nil end
+    if navNode and navWp and wp.x == navWp.x and wp.y == navWp.y and wp.z == navWp.z then return navNode end
     local found, node = GetClosestVehicleNode(wp.x, wp.y, wp.z, 1, 3.0, 0)
-    return found and node or wp
+    if found then
+        navWp, navNode = wp, node
+        return node
+    end
+    navWp, navNode = nil, nil
+    return wp
 end
 
 CreateThread(function()
@@ -522,10 +572,9 @@ CreateThread(function()
     local lastX, lastY
 
     while true do
-        local native = IsWaypointActive() and GetFirstBlipInfoId(8) or 0
-        if native ~= 0 and DoesBlipExist(native) then
+        local native, wp = HudWaypoint()
+        if native then
             SetBlipDisplay(native, 3) -- 3 = pause map only (route is unaffected)
-            local wp = GetBlipInfoIdCoord(native)
 
             if not wpBlip or not DoesBlipExist(wpBlip) then
                 wpBlip = AddBlipForCoord(wp.x, wp.y, 0.0)
@@ -561,6 +610,8 @@ CreateThread(function()
     local street, turn = nil, nil
     local wasVisible = nil
     local radarForced = false -- we're hiding / showing the radar (vs leaving it to the game)
+    local sent = {}           -- last update sent to the page; unchanged updates are skipped
+    local function round1(v) return math.floor(v * 10 + 0.5) / 10 end
 
     while true do
         local ped = PlayerPedId()
@@ -599,30 +650,42 @@ CreateThread(function()
                 street = streetName(pos)
             end
 
-            local waypoint = IsWaypointActive() and GetFirstBlipInfoId(8) or 0
-            if waypoint ~= 0 and DoesBlipExist(waypoint) then
+            local waypoint, wp = HudWaypoint()
+            if waypoint then
                 if now >= nextNav or not distance then
                     nextNav = now + 250
-                    local wp = GetBlipInfoIdCoord(waypoint)
                     local routeLen = GetGpsBlipRouteFound() and GetGpsBlipRouteLength() or 0
-                    distance = routeLen > 0 and routeLen or #(vector2(wp.x, wp.y) - vector2(pos.x, pos.y))
+                    -- whole metres: the page shows hundredths of a mile / km
+                    distance = math.floor((routeLen > 0 and routeLen or #(vector2(wp.x, wp.y) - vector2(pos.x, pos.y))) + 0.5)
                 end
                 turn = navTurn -- worked out by the satnav thread above
             else
                 distance, turn = nil, nil
             end
 
-            SendNUIMessage({
-                type = 'update',
-                visible = true,
-                cam = GetGameplayCamRot(2).z,
-                player = GetEntityHeading(ped),
-                distance = distance,
-                night = night,
-                -- street bar + turn card only while in a vehicle
-                street = inVehicle and street or nil,
-                turn = inVehicle and turn or nil,
-            })
+            -- Angles to a tenth of a degree (the page eases between updates anyway); only sent
+            -- when something changed, so standing still sends nothing
+            local cam, player = round1(GetGameplayCamRot(2).z), round1(GetEntityHeading(ped))
+            -- street bar + turn card only while in a vehicle
+            local st = inVehicle and street or nil
+            local tn = inVehicle and turn or nil
+            local tKind, tDist = tn and tn.kind, tn and tn.dist
+            if updateDirty or wasVisible ~= true or cam ~= sent.cam or player ~= sent.player or distance ~= sent.distance
+                or night ~= sent.night or st ~= sent.street or tKind ~= sent.tKind or tDist ~= sent.tDist then
+                sent.cam, sent.player, sent.distance, sent.night = cam, player, distance, night
+                sent.street, sent.tKind, sent.tDist = st, tKind, tDist
+                updateDirty = false
+                SendNUIMessage({
+                    type = 'update',
+                    visible = true,
+                    cam = cam,
+                    player = player,
+                    distance = distance,
+                    night = night,
+                    street = st,
+                    turn = tn,
+                })
+            end
             wasVisible = true
             Wait(33)
         else

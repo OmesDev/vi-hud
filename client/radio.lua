@@ -119,22 +119,16 @@ end
 -- NUI
 -- ---------------------------------------------------------------------------
 
-local function push(show, title, artist)
-    local msg = {
-        show = show,
-        sel = sel - 1,
-        muted = muted,
-        playing = playingStation(),
-        title = title,
-        artist = artist,
-    }
-    local changed = false
-    for _, k in ipairs({ 'show', 'sel', 'muted', 'playing', 'title', 'artist' }) do
-        if lastSent[k] ~= msg[k] then changed = true break end
+-- playing = playingStation() as of now (the caller already has it)
+local function push(show, title, artist, playing)
+    local s = sel - 1
+    local l = lastSent
+    if l.show == show and l.sel == s and l.muted == muted and l.playing == playing
+        and l.title == title and l.artist == artist then
+        return
     end
-    if not changed then return end
-    lastSent = msg
-    SendNUIMessage({ type = 'radio', action = 'state', state = msg })
+    lastSent = { show = show, sel = s, muted = muted, playing = playing, title = title, artist = artist }
+    SendNUIMessage({ type = 'radio', action = 'state', state = lastSent })
 end
 
 RegisterNUICallback('radioReady', function(_, cb)
@@ -189,7 +183,7 @@ CreateThread(function()
             if open or hideAt ~= 0 then
                 open, hideAt = false, 0
             end
-            push(false)
+            push(false, nil, nil, playingStation())
             restoreWheel()
             lowerWheelUntil = 0
             lastVeh = 0
@@ -213,6 +207,7 @@ CreateThread(function()
 
             local playing = playingStation()
             if playing then lastStation = playing end
+            local nowPlaying = playing -- for push(); re-read after apply() retunes the radio
 
             local blocked = IsPauseMenuActive() or IsHudHidden()
             local held = IsDisabledControlPressed(0, CONTROL_WHEEL) and not blocked
@@ -255,6 +250,7 @@ CreateThread(function()
             elseif open then
                 open = false
                 apply(veh)
+                nowPlaying = playingStation()
                 prevPlaying = expectedStation()
                 quietUntil = now + 1000 -- GTA can still report the old station for a moment
                 hideAt = now + R.ShowTime
@@ -266,6 +262,7 @@ CreateThread(function()
                     syncSelection()
                     move(step)
                     apply(veh)
+                    nowPlaying = playingStation()
                     prevPlaying = expectedStation()
                     quietUntil = now + 1000
                     hideAt = now + R.ShowTime
@@ -297,7 +294,7 @@ CreateThread(function()
                 title, artist, nextTrack = nil, nil, 0
                 if not open and hideAt ~= 0 and now >= hideAt then hideAt = 0 end
             end
-            push(show, title, artist)
+            push(show, title, artist, nowPlaying)
 
             -- Push GTA's weapon select pop-up down so it doesn't cover the strip. Stays lowered a
             -- moment after the strip hides so a pop-up that's still fading out doesn't jump up.

@@ -255,9 +255,16 @@ function HudSettings.Get(id)
     return o and o.default
 end
 
+-- 'show.<name>' keys, built once per name (Shown is called from per-frame loops)
+local SHOW_KEY = setmetatable({}, { __index = function(t, name)
+    local k = 'show.' .. name
+    t[name] = k
+    return k
+end })
+
 function HudSettings.Shown(name)
     if values['show.hud'] == false then return false end
-    if name and values['show.' .. name] == false then return false end
+    if name and values[SHOW_KEY[name]] == false then return false end
     return true
 end
 

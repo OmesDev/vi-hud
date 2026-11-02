@@ -142,7 +142,7 @@
 #speedo .sp-alt { display: none; }
 
 /* ------------------------------------------------------------------ minimal style
-   Speed + unit, altitude (flying), then the engine / fuel / seatbelt icons in a row.
+   Gear, speed + unit, altitude (flying), then the engine / fuel / seatbelt icons in a row.
    speedo.js pins it next to the minimap panel's bottom-right corner. */
 
 #speedo.sp-minimal {
@@ -158,8 +158,7 @@
 }
 
 #speedo.sp-minimal::before,
-#speedo.sp-minimal .sp-arc,
-#speedo.sp-minimal .sp-gear { display: none; }
+#speedo.sp-minimal .sp-arc { display: none; }
 
 /* speed + unit on one baseline */
 #speedo.sp-minimal .sp-line {
@@ -186,6 +185,22 @@
     font-weight: 700;
     letter-spacing: 0.04em;
     color: #fff;
+}
+
+/* gear: the gauge's white badge, smaller, above the speed (speedo.js moves it there, so the
+   speed's digits don't push it around). Pink at the redline, like the gauge. */
+#speedo.sp-minimal .sp-gear {
+    position: static;
+    transform: none;
+    min-width: calc(1.1 * var(--u));
+    height: calc(1.1 * var(--u));
+    padding: 0 calc(0.22 * var(--u));
+    box-sizing: border-box;
+    border-radius: calc(0.16 * var(--u));
+    font-size: calc(0.72 * var(--u));
+    font-weight: 800;
+    line-height: calc(1.1 * var(--u));
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 #speedo.sp-minimal .sp-alt {

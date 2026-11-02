@@ -39,12 +39,16 @@
 }
 
 .chat-messages {
+    --fade: calc(2 * var(--u));
+    box-sizing: border-box;
     height: 100%;
     margin: 0;
     font-size: calc(0.8 * var(--u));
-    /* older lines fade out at the top instead of being cut */
-    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 calc(2 * var(--u)));
-    mask-image: linear-gradient(180deg, transparent 0, #000 calc(2 * var(--u)));
+    /* older lines fade out at the top as they scroll away instead of being cut. The padding keeps
+       the first line below the fade while the list is short, so new chats aren't greyed out */
+    padding-top: var(--fade);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 var(--fade));
+    mask-image: linear-gradient(180deg, transparent 0, #000 var(--fade));
 }
 
 .msg {

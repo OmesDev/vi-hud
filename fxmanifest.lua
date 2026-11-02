@@ -8,6 +8,10 @@ version '1.0.0'
 
 ui_page 'html/index.html'
 
+escrow_ignore {
+    'config.lua',
+}
+
 shared_script 'config.lua'
 client_scripts {
     'client/bridge.lua',
@@ -41,3 +45,5 @@ files {
     'html/stations/*.png',
     'html/weapons/*.png',
 }
+
+

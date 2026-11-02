@@ -204,7 +204,7 @@ local UNARMED = u32(GetHashKey('WEAPON_UNARMED'))
 -- ---------------------------------------------------------------------------
 
 local OX = 'ox_inventory'
-local function oxRunning() return GetResourceState(OX) == 'started' end
+local function oxRunning() return Bridge.Started(OX) end -- cached, kept current by resource start / stop
 
 local ITEMS = W.Items ~= false
 local SWITCH = W.SwitchControl or 206
@@ -292,6 +292,8 @@ local slots = {}       -- [1..8] = { list = { weapon... }, idx = n }
 local chosen = {}      -- [slot] = hash last picked in that slot (kept between openings)
 local hover = 0        -- highlighted slot (0 = none)
 local equipped, lastWeapon = nil, nil
+local equippedAt = 0       -- when `equipped` was drawn
+local UNARMED_BLIP = 2000  -- ms; unarmed for less than this between two weapons = holstering, not a pick
 
 local function click(name)
     if W.Sounds then PlaySoundFrontend(-1, name, 'HUD_FRONTEND_DEFAULT_SOUNDSET', true) end
@@ -546,11 +548,16 @@ CreateThread(function()
             SendNUIMessage({ type = 'wheel', action = 'invdim', on = inv })
         end
 
-        -- Remember what was held before, for the "last weapon" glow
+        -- Remember what was held before, for the "last weapon" glow. ox_inventory (and other
+        -- scripts) holster on the way to the next weapon, so A -> B passes through unarmed for a
+        -- moment; that blip isn't "the last weapon", only fists held for a while are.
         local cur = u32(GetSelectedPedWeapon(ped))
         if cur ~= equipped then
-            if equipped and equipped ~= cur then lastWeapon = equipped end
-            equipped = cur
+            local t = GetGameTimer()
+            if equipped and not (equipped == UNARMED and t - equippedAt < UNARMED_BLIP) then
+                lastWeapon = equipped
+            end
+            equipped, equippedAt = cur, t
         end
 
         if inVehicle and not W.InVehicle then
@@ -698,15 +705,34 @@ end
 
 local CLIP_COLOUR, SPARE_COLOUR = { 238, 234, 230 }, { 185, 186, 181 }
 
+-- Text widths only change with the string (or the screen), so they're measured once and reused.
+-- Cleared when the aspect ratio / resolution changes, and when it gets big.
+local widthCache, widthCount = {}, 0
+
+local function clearWidths() widthCache, widthCount = {}, 0 end
+
+local function cachedWidth(str, scale)
+    local w = widthCache[str]
+    if not w then
+        if widthCount >= 256 then clearWidths() end
+        w = textWidth(str, scale)
+        widthCache[str] = w
+        widthCount = widthCount + 1
+    end
+    return w
+end
+
+local function round4(v) return math.floor(v * 10000 + 0.5) / 10000 end
+
 -- parts = { '13', '80' } (clip, spare) or { '3' } (count); right-aligned to the icon's edge
-local function drawAmmo(parts, alpha, scale)
-    local m, u, uh = hudGeometry()
+local widths = {}
+local function drawAmmo(parts, alpha, scale, m, u, uh)
     local right = 1.0 - m - EDGE * u
     local y = m + EDGE * uh + (MoneyHudOffset or 0.0) -- pushed down while the money display (money.lua) is up
-    local widths, total = {}, 0.0
-    local space = textWidth('0', scale) * 0.55
+    local total = 0.0
+    local space = cachedWidth('0', scale) * 0.55
     for i, p in ipairs(parts) do
-        widths[i] = textWidth(p, scale)
+        widths[i] = cachedWidth(p, scale)
         total = total + widths[i] + (i > 1 and space or 0.0)
     end
     local x = right - total
@@ -720,8 +746,13 @@ CreateThread(function()
     if not HUD.Enabled then return end
     local scale = HUD.AmmoScale or 0.4
     local FADE = 300 -- ms, same as the icon's fade in weaponhud.css
-    local lastKey, parts
+    local parts
     local alpha, lastT = 0.0, GetGameTimer()
+    -- What the NUI was last sent: sent = true (shown) / false (hidden) / nil (nothing yet)
+    local sent, sentName, sentMargin, sentAmmoH, sentOffset = nil, nil, nil, nil, nil
+    -- Rendered height of the ammo line, re-measured once a second (it only changes with the screen)
+    local charH, nextMeasure, screenKey, screenAspect = 0, 0, nil, nil
+    local lastClip, lastReserve, lastCount -- parts is only rebuilt when the ammo changes
 
     while true do
         local now = GetGameTimer()
@@ -736,48 +767,78 @@ CreateThread(function()
             and not open
             and HudSettings.Shown('ammo')
 
+        local m, u, uh
+        if show or (alpha > 0 and parts) then
+            m, u, uh = hudGeometry()
+            -- Aspect ratio changed: cached text widths are stale
+            local aspect = uh / u
+            if aspect ~= screenAspect then
+                screenAspect = aspect
+                clearWidths()
+            end
+        end
+
         if show then
             -- Kill GTA's own weapon icon / ammo counter up there
             HideHudComponentThisFrame(2)
             HideHudComponentThisFrame(20)
 
             local a = ammoOf(ped, w)
-            if a and a.clip then parts = { tostring(a.clip), tostring(a.reserve) }
-            elseif a then parts = { tostring(a.count) }
-            else parts = nil end
+            if a and a.clip then
+                if not parts or #parts ~= 2 or a.clip ~= lastClip or a.reserve ~= lastReserve then
+                    parts = { tostring(a.clip), tostring(a.reserve) }
+                end
+                lastClip, lastReserve, lastCount = a.clip, a.reserve, nil
+            elseif a then
+                if not parts or #parts ~= 1 or a.count ~= lastCount then parts = { tostring(a.count) } end
+                lastClip, lastReserve, lastCount = nil, nil, a.count
+            else
+                parts, lastClip, lastReserve, lastCount = nil, nil, nil, nil
+            end
 
-            local m = hudGeometry()
-            local msg = {
-                type = 'weaponhud',
-                show = true,
-                name = w.name,
-                label = w.label,
-                margin = math.floor(m * 10000 + 0.5) / 10000,
-                -- height of the ammo line (screen-height fraction) so the icon sits right under it
-                ammoH = parts and math.floor(GetRenderedCharacterHeight(scale, FONT_PRICEDOWN) * 10000 + 0.5) / 10000 or 0,
-                iconUrl = Bridge.WeaponIconUrls(W.IconUrl or HUD.IconUrl),
-                iconSize = HUD.IconSize or 1.0,
-                offset = math.floor((MoneyHudOffset or 0.0) * 10000 + 0.5) / 10000,
-            }
-            local key = table.concat({ msg.name, msg.margin, msg.ammoH, msg.offset }, '|')
-            if key ~= lastKey then
-                lastKey = key
-                SendNUIMessage(msg)
+            if now >= nextMeasure then
+                nextMeasure = now + 1000
+                charH = round4(GetRenderedCharacterHeight(scale, FONT_PRICEDOWN))
+                local rx, ry = GetActiveScreenResolution()
+                local key = rx * 100000 + ry
+                if key ~= screenKey then
+                    screenKey = key
+                    clearWidths()
+                end
+            end
+
+            local margin = round4(m)
+            -- height of the ammo line (screen-height fraction) so the icon sits right under it
+            local ammoH = parts and charH or 0
+            local offset = round4(MoneyHudOffset or 0.0)
+            if sent ~= true or w.name ~= sentName or margin ~= sentMargin
+                or ammoH ~= sentAmmoH or offset ~= sentOffset then
+                sent, sentName, sentMargin, sentAmmoH, sentOffset = true, w.name, margin, ammoH, offset
+                SendNUIMessage({
+                    type = 'weaponhud',
+                    show = true,
+                    name = w.name,
+                    label = w.label,
+                    margin = margin,
+                    ammoH = ammoH,
+                    iconUrl = Bridge.WeaponIconUrls(W.IconUrl or HUD.IconUrl),
+                    iconSize = HUD.IconSize or 1.0,
+                    offset = offset,
+                })
             end
 
             -- How far down from the top margin this block reaches (inset + ammo + gap + icon at its
             -- max height, see weaponhud.css), so top-right notifications can sit under it
-            local _, _, uh = hudGeometry()
-            WeaponHudHeight = (0.5 + 1.8 * (HUD.IconSize or 1.0)) * uh + msg.ammoH
-        elseif lastKey ~= false then
-            lastKey = false
+            WeaponHudHeight = (0.5 + 1.8 * (HUD.IconSize or 1.0)) * uh + ammoH
+        elseif sent ~= false then
+            sent = false
             WeaponHudHeight = 0.0
             SendNUIMessage({ type = 'weaponhud', show = false })
         end
 
         -- Native text can't use CSS, so fade it here in step with the icon
         alpha = math.max(0.0, math.min(255.0, alpha + (show and 1 or -1) * 255.0 * dt / FADE))
-        if alpha > 0 and parts then drawAmmo(parts, math.floor(alpha), scale) end
+        if alpha > 0 and parts then drawAmmo(parts, math.floor(alpha), scale, m, u, uh) end
 
         if not show and alpha <= 0 then Wait(150) else Wait(0) end
     end
